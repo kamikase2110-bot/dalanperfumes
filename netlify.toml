@@ -4,3 +4,8 @@
 
 [build.environment]
   NODE_VERSION = "20"
+
+[[redirects]]
+  from = "/api/binance-rate"
+  to = "/.netlify/functions/binance-rate"
+  status = 200
