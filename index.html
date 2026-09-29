@@ -419,6 +419,7 @@
             width: 100%;
             height: 100%;
             object-fit: contain;
+            transform: scale(1.12);
             transition: transform 0.5s;
         }
 
@@ -430,7 +431,7 @@
         }
 
         .product-card:hover .product-img-container img {
-            transform: scale(1.03);
+            transform: scale(1.16);
         }
 
         .badge {
@@ -964,6 +965,15 @@
         }
 
         @media (max-width: 620px) {
+            .filters {
+                gap: 0.65rem;
+            }
+
+            .search-box {
+                flex-basis: 100%;
+                min-width: 0;
+            }
+
             .hero {
                 min-height: 360px;
                 padding: 3.5rem 6%;
@@ -998,14 +1008,51 @@
             }
 
             .catalog-select-filter {
-                width: 100%;
-                justify-content: space-between;
+                flex: 1 1 calc(50% - 0.35rem);
+                min-width: 0;
+                display: block;
+                padding: 0.5rem 0.6rem;
+            }
+
+            .catalog-select-filter label {
+                display: block;
+                margin-bottom: 0.2rem;
+                font-size: 0.72rem;
             }
 
             .catalog-select-filter select {
-                flex: 1;
-                max-width: 240px;
-                text-align: right;
+                display: block;
+                width: 100%;
+                max-width: none;
+                font-size: 0.8rem;
+                text-align: left;
+            }
+
+            .exchange-box.rate-display {
+                display: grid;
+                grid-template-columns: auto auto;
+                align-items: center;
+                justify-content: start;
+                gap: 0.15rem 0.45rem;
+                min-width: 0;
+                padding: 0.5rem 0.7rem;
+            }
+
+            .rate-display label {
+                grid-column: 1 / -1;
+                font-size: 0.65rem;
+                letter-spacing: 0.04em;
+            }
+
+            .rate-display input {
+                width: 68px;
+                font-size: 1.1rem;
+                text-align: left;
+            }
+
+            .rate-display span {
+                white-space: nowrap;
+                font-size: 0.75rem;
             }
 
             .decant-btn,
