@@ -6774,12 +6774,7 @@
         ];
 
         function normalizarDisponibilidad(producto) {
-            const valorNumerico = producto.tipoStock;
-            const esValorNumerico = valorNumerico === 1 || valorNumerico === 0 || valorNumerico === '1' || valorNumerico === '0';
-            const enStock = esValorNumerico
-                ? Number(valorNumerico) === 1
-                : !/por pedido/i.test(producto.estadoTexto || '');
-
+            const enStock = Number(producto.tipoStock) === 1;
             producto.tipoStock = enStock ? 1 : 0;
             producto.estadoTexto = enStock ? 'En stock' : 'Por pedido';
         }
@@ -6870,7 +6865,9 @@
             }
 
             productosDePagina.forEach(p => {
-                const badgeClass = /por pedido/i.test(p.estadoTexto) ? 'order' : 'stock';
+                const enStock = Number(p.tipoStock) === 1;
+                const estadoTexto = enStock ? 'En stock' : 'Por pedido';
+                const badgeClass = enStock ? 'stock' : 'order';
                 const estadoValidacion = obtenerEstadoValidacion(p);
                 const notas = (p.notas || '').split(',').map(nota => nota.trim().replace(/\.$/, '')).filter(Boolean);
                 const notasDisponibles = notas.filter(nota => !/^notas no disponibles$/i.test(nota));
@@ -6881,7 +6878,7 @@
                 grid.innerHTML += `
                     <div class="product-card">
                         <div class="product-img-container">
-                            <span class="badge ${badgeClass}">${p.estadoTexto}</span>
+                            <span class="badge ${badgeClass}">${estadoTexto}</span>
                             <span class="product-validation ${estadoValidacion.clase}" title="${estadoValidacion.titulo}" aria-label="${estadoValidacion.titulo}"></span>
                             ${p.imagen === 'Imagen no disponible'
                                 ? '<span class="product-img-placeholder">Imagen no disponible</span>'
@@ -6952,8 +6949,8 @@
             const query = document.getElementById('searchInput').value.toLowerCase();
             const filtered = perfumesDB.filter(p => 
                 (filtroStockActual === 'all' ||
-                    (filtroStockActual === 'order' && /por pedido/i.test(p.estadoTexto)) ||
-                    (filtroStockActual === 'stock' && !/por pedido/i.test(p.estadoTexto))) &&
+                    (filtroStockActual === 'order' && Number(p.tipoStock) !== 1) ||
+                    (filtroStockActual === 'stock' && Number(p.tipoStock) === 1)) &&
                 (filtroMarcaActual === 'all' || (p.marca || '').trim().toLocaleLowerCase() === filtroMarcaActual.toLocaleLowerCase()) &&
                 (p.nombre.toLowerCase().includes(query) ||
                 (p.marca || '').toLowerCase().includes(query) ||
@@ -7014,6 +7011,7 @@
                     marca: product.marca,
                     precio: product.precio,
                     estadoTexto: product.estadoTexto,
+                    tipoStock: product.tipoStock,
                     quantity: 1
                 });
             }
@@ -7090,7 +7088,7 @@
             cart.forEach(item => {
                 let subtotal = item.precio * item.quantity;
                 total += subtotal;
-                const estadoPedido = /por pedido/i.test(item.estadoTexto) ? ' [Por pedido]' : '';
+                const estadoPedido = Number(item.tipoStock) === 1 ? '' : ' [Por pedido]';
                 const nombreProducto = item.marca ? `${item.marca} - ${item.nombre}` : item.nombre;
                 message += `• *${item.quantity}x* ${nombreProducto} - Bs ${Math.round(item.precio)} c/u${estadoPedido}\n`;
             });
