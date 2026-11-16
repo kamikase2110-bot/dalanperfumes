@@ -311,7 +311,10 @@ async function storefront() {
         if (!nodes.has(id)) nodes.set(id, {
             innerHTML: '', value: '', textContent: '', open: false,
             selectedOptions: [{ textContent: 'Splash' }],
-            classList: { toggle() {} }, scrollIntoView() {}, focus() {},
+            classList: { toggle() {}, add() {}, remove() {} }, scrollIntoView() {}, focus() {},
+            setAttribute() {},
+            setCustomValidity(message) { this.validationMessage = message; },
+            reportValidity() { return !this.validationMessage; },
             showModal() { this.open = true; }, close() { this.open = false; },
             querySelector() { return { focus() {} }; }
         });
@@ -319,7 +322,7 @@ async function storefront() {
     };
     const context = {
         productType,
-        document: { getElementById: node, querySelectorAll: () => [], body: { style: {} } },
+        document: { getElementById: node, querySelectorAll: () => [], querySelector: () => null, body: { style: {} } },
         matchMedia: () => ({ matches: true })
     };
     vm.createContext(context);
@@ -411,4 +414,57 @@ test('detail includes all notes, full text and consult action without adding unp
     context.products[0].notas = '';
     run('verProducto(507);');
     assert.match(node('productDetail').innerHTML, /Notas no disponibles/);
+});
+
+test('decant asks for ml after the name, preserves edits and includes both values in WhatsApp', async () => {
+    const { node, context, run } = await storefront();
+    const opened = [];
+    const popup = { opener: 'original' };
+    context.window = { open: (...args) => { opened.push(args); return popup; } };
+    run('solicitarDecant();');
+    assert.equal(node('decantMl').disabled, true);
+    assert.equal(node('decantAmountStep').hidden, true);
+    node('decantPerfume').value = '  Khamrah & <Oud>  ';
+    run('enviarSolicitudDecant({ preventDefault() {} });');
+    assert.equal(opened.length, 0);
+    assert.equal(node('decantNameStep').hidden, true);
+    assert.equal(node('decantMl').disabled, false);
+    assert.equal(node('decantSelectedPerfume').textContent, 'Khamrah & <Oud>');
+    assert.equal(node('decantSelectedPerfume').innerHTML, '');
+    node('decantMl').value = '2.5';
+    node('decantMl').valueAsNumber = 2.5;
+    run('mostrarPasoDecant(1);');
+    assert.equal(node('decantPerfume').disabled, false);
+    assert.equal(node('decantMl').disabled, true);
+    assert.equal(node('decantMl').value, '2.5');
+    node('decantPerfume').value = '  Yara & Rose  ';
+    run('enviarSolicitudDecant({ preventDefault() {} }); enviarSolicitudDecant({ preventDefault() {} });');
+    assert.equal(opened.length, 1);
+    const url = new URL(opened[0][0]);
+    assert.equal(url.origin + url.pathname, 'https://wa.me/59176609312');
+    assert.match(url.searchParams.get('text'), /2\.5 ml del perfume Yara & Rose\./);
+    assert.equal(opened[0][1], '_blank');
+    assert.equal(popup.opener, null);
+    run('solicitarDecant();');
+    assert.equal(node('decantAmountStep').hidden, true);
+    assert.equal(node('decantPerfume').value, '  Yara & Rose  ');
+    assert.equal(node('decantMl').value, '2.5');
+});
+
+test('decant rejects blank names and missing, nonfinite or nonpositive ml with visible validation', async () => {
+    const { node, context, run } = await storefront();
+    context.window = { open: () => assert.fail('Must not open WhatsApp for invalid input') };
+    node('decantPerfume').value = '   ';
+    run('enviarSolicitudDecant({ preventDefault() {} });');
+    assert.equal(run('pasoDecant'), 1);
+    assert.ok(node('decantPerfume').validationMessage);
+    node('decantPerfume').value = 'Khamrah';
+    run('enviarSolicitudDecant({ preventDefault() {} });');
+    assert.equal(run('pasoDecant'), 2);
+    for (const value of [NaN, 0, -5, Infinity]) {
+        node('decantMl').valueAsNumber = value;
+        run('enviarSolicitudDecant({ preventDefault() {} });');
+        assert.ok(node('decantMl').validationMessage);
+        assert.equal(run('pasoDecant'), 2);
+    }
 });

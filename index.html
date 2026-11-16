@@ -872,6 +872,8 @@
         .decant-dialog {
             position: relative;
             width: min(100%, 470px);
+            max-height: calc(100dvh - 2rem);
+            overflow-y: auto;
             padding: 3rem 2.25rem 2.25rem;
             border: 1px solid rgba(212, 175, 55, 0.65);
             background: radial-gradient(ellipse at top, rgba(212, 175, 55, 0.16), transparent 65%), #18181c;
@@ -911,9 +913,16 @@
 
         .decant-form-actions {
             display: flex;
+            flex-wrap: wrap;
             justify-content: flex-end;
             gap: 0.65rem;
             margin-top: 1.25rem;
+        }
+
+        .decant-perfume-summary {
+            color: var(--gold-light);
+            overflow-wrap: anywhere;
+            margin-bottom: 1rem;
         }
 
         .decant-cancel,
@@ -1218,11 +1227,19 @@
             </button>
             <span class="promo-eyebrow">Solicitud de decants</span>
             <h2 id="decantTitle">¿De qué perfume te gustaría pedir un decant?</h2>
-            <label class="decant-label" for="decantPerfume">Nombre del perfume</label>
-            <input class="decant-input" id="decantPerfume" name="perfume" type="text" maxlength="100" placeholder="Ej.: Khamrah" autocomplete="off" required>
+            <div id="decantNameStep">
+                <label class="decant-label" for="decantPerfume">Nombre del perfume</label>
+                <input class="decant-input" id="decantPerfume" name="perfume" type="text" maxlength="100" placeholder="Ej.: Khamrah" autocomplete="off" oninput="this.setCustomValidity('')" required>
+            </div>
+            <div id="decantAmountStep" hidden>
+                <p class="decant-perfume-summary" id="decantSelectedPerfume"></p>
+                <label class="decant-label" for="decantMl">Cantidad en ml</label>
+                <input class="decant-input" id="decantMl" name="ml" type="number" inputmode="decimal" min="0" step="any" placeholder="Ej.: 10" oninput="this.setCustomValidity('')" disabled required>
+            </div>
             <div class="decant-form-actions">
                 <button class="decant-cancel" type="button" onclick="cerrarSolicitudDecant()">Cancelar</button>
-                <button class="decant-submit" type="submit"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i>Enviar por WhatsApp</button>
+                <button class="decant-cancel" id="decantBack" type="button" onclick="mostrarPasoDecant(1)" hidden>Atrás</button>
+                <button class="decant-submit" id="decantSubmit" type="submit">Siguiente</button>
             </div>
         </form>
     </div>
@@ -1739,11 +1756,29 @@
             window.open(whatsappUrl, '_blank');
         }
 
+        let pasoDecant = 1;
+
+        function mostrarPasoDecant(paso) {
+            pasoDecant = paso;
+            const primerPaso = paso === 1;
+            document.getElementById('decantNameStep').hidden = !primerPaso;
+            document.getElementById('decantAmountStep').hidden = primerPaso;
+            document.getElementById('decantPerfume').disabled = !primerPaso;
+            document.getElementById('decantMl').disabled = primerPaso;
+            document.getElementById('decantBack').hidden = primerPaso;
+            document.getElementById('decantTitle').textContent = primerPaso
+                ? '¿De qué perfume te gustaría pedir un decant?'
+                : '¿Cuántos ml deseas?';
+            document.getElementById('decantSelectedPerfume').textContent = document.getElementById('decantPerfume').value.trim();
+            document.getElementById('decantSubmit').textContent = primerPaso ? 'Siguiente' : 'Enviar por WhatsApp';
+            document.getElementById(primerPaso ? 'decantPerfume' : 'decantMl').focus();
+        }
+
         function solicitarDecant() {
             const overlay = document.getElementById('decantOverlay');
             overlay.classList.add('open');
             overlay.setAttribute('aria-hidden', 'false');
-            document.getElementById('decantPerfume').focus();
+            mostrarPasoDecant(1);
         }
 
         function cerrarSolicitudDecant(event) {
@@ -1756,11 +1791,23 @@
 
         function enviarSolicitudDecant(event) {
             event.preventDefault();
-            const perfume = document.getElementById('decantPerfume').value.trim();
-            if (!perfume) return;
+            const nombre = document.getElementById('decantPerfume');
+            const perfume = nombre.value.trim();
+            if (pasoDecant === 1 || !perfume) {
+                if (!perfume) mostrarPasoDecant(1);
+                nombre.setCustomValidity(perfume ? '' : 'Escribe el nombre del perfume.');
+                if (!nombre.reportValidity()) return;
+                mostrarPasoDecant(2);
+                return;
+            }
+
+            const cantidad = document.getElementById('decantMl');
+            const ml = cantidad.valueAsNumber;
+            cantidad.setCustomValidity(Number.isFinite(ml) && ml > 0 ? '' : 'Escribe una cantidad de ml mayor que cero.');
+            if (!cantidad.reportValidity()) return;
 
             const phoneNumber = '59176609312';
-            const message = `Hola Perfumeria DALAN, quisiera saber si tiene disponibles decants del perfume ${perfume.trim()}.`;
+            const message = `Hola Perfumeria DALAN, quisiera saber si tiene disponible un decant de ${ml} ml del perfume ${perfume}.`;
             const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
 
             const whatsappWindow = window.open(whatsappUrl, '_blank');

@@ -74,6 +74,10 @@ borra ese historial ni convierte un repositorio publico en privado.
   tipos que utiliza el calculo de ganancia, sin editar su categoria guardada.
 - La paginacion conserva 24 productos y muestra Anterior, Pagina X de Y y
   Siguiente. Precios, carrito, WhatsApp y administracion no cambian.
+- **Decants** pregunta primero el perfume y, al pulsar **Siguiente**, la cantidad
+  libre de ml (mayor que cero, admite decimales). **Atras** permite corregir el
+  nombre. WhatsApp recibe ambos datos; cerrar y reabrir vuelve al primer paso
+  conservando los valores escritos.
 
 Abrir `/admin`, ingresar, buscar un producto o pulsar **Agregar perfume**.
 
