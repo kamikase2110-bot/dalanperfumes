@@ -53,16 +53,21 @@
                         </div>
                         <output id="price-preview" aria-live="polite"></output>
                         <small>Splash y lociones: 50 Bs de ganancia al seleccionar su tipo. Los nombres con Splash, Locion o Lotion tambien se reconocen automaticamente.</small>
-                        <label>Disponibilidad <select name="tipoStock"><option value="0">Por pedido</option><option value="1">En stock</option></select></label>
+                        <label>Disponibilidad <select name="tipoStock"><option value="0">Por pedido</option><option value="1">Disponible</option><option value="2">Agotado (solo consultas)</option></select></label>
+                        <label>Presentacion (opcional) <input name="presentacion" maxlength="100" placeholder="Ej.: 100 ml o estuche de 3 piezas"></label>
                         <label>Inspiracion / descripcion <textarea name="inspiracion" maxlength="500" rows="2" placeholder="Ej.: Se parece a..."></textarea></label>
                         <label>Notas aromaticas <textarea name="notas" maxlength="2000" rows="3" placeholder="Bergamota, jazmin, vainilla"></textarea></label>
                         <fieldset>
-                            <legend>Foto</legend>
-                            <label>Subir desde celular o computadora <input id="photo-file" type="file" accept="image/jpeg,image/png,image/webp"></label>
-                            <small>JPG, PNG o WebP. Maximo 4 MB. Se sube al guardar el producto.</small>
-                            <label>O enlace HTTPS de la foto <input name="imagen" type="url" maxlength="2048" placeholder="https://..."></label>
+                            <legend>Galeria: hasta 5 fotos, incluida la portada</legend>
+                            <label>Agregar desde celular o computadora <input id="photo-file" type="file" accept="image/jpeg,image/png,image/webp" multiple></label>
+                            <small>JPG, PNG o WebP. Maximo 4 MB por foto. Se suben al guardar el producto.</small>
+                            <input name="imagen" type="hidden">
+                            <label>O agregar un enlace HTTPS <input id="gallery-url" type="url" maxlength="2048" placeholder="https://..."></label>
+                            <button id="add-photo-url" type="button" class="secondary">Agregar enlace</button>
+                            <div id="gallery-editor"></div>
                             <img id="photo-preview" alt="Vista previa del producto" hidden>
-                            <button id="clear-photo" type="button" class="secondary">Quitar foto</button>
+                            <button id="clear-photo" type="button" class="secondary">Quitar todas de la galeria</button>
+                            <small>Quitar de la galeria no borra el archivo del almacenamiento.</small>
                         </fieldset>
                         <label class="checkbox"><input name="oculto" type="checkbox"> Ocultar de la tienda (conserva todos sus datos)</label>
                         <p>Guardar publica el cambio en la tienda. Si no tiene foto, aparecera "Imagen no disponible".</p>
@@ -70,6 +75,26 @@
                     </form>
                 </section>
             </div>
+            <section class="card quality-admin">
+                <h2>Entregas, pagos y condiciones</h2>
+                <form id="info-form">
+                    <label>Aviso breve de bienvenida <textarea name="aviso" maxlength="300" rows="3" required></textarea></label>
+                    <label>Entregas <textarea name="entregas" maxlength="3000" rows="4" required></textarea></label>
+                    <label>Pagos <textarea name="pagos" maxlength="3000" rows="3" required></textarea></label>
+                    <label>Pedidos especiales y condiciones <textarea name="pedidos" maxlength="5000" rows="7" required></textarea></label>
+                    <p id="info-status" role="status">Cargando informacion...</p>
+                    <button id="save-info" type="submit" disabled>Guardar y publicar condiciones</button>
+                    <button id="reload-info" type="button" class="secondary">Recargar condiciones</button>
+                </form>
+            </section>
+            <section class="card quality-admin">
+                <h2>Resenas de productos</h2>
+                <label>Estado <select id="review-state"><option value="pendiente">Pendientes</option><option value="aprobada">Aprobadas</option><option value="rechazada">Rechazadas</option><option value="oculta">Ocultas</option></select></label>
+                <button id="reload-reviews" type="button" class="secondary">Recargar resenas</button>
+                <p id="review-status" role="status"></p>
+                <div id="review-list"></div>
+                <div class="list-navigation"><button id="review-previous" type="button">Anterior</button><span id="review-page"></span><button id="review-next" type="button">Siguiente</button></div>
+            </section>
         </section>
     </main>
 </body>

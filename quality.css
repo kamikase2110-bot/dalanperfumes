@@ -1,0 +1,25 @@
+.buying-info { max-width: 1200px; margin: 2rem auto 6rem; padding: 1.5rem; border-top: 1px solid #6b5b28; }
+.buying-info h2, .product-reviews h3 { color: #e8cf81; }
+.promo-dialog { max-height: calc(100dvh - 2rem); overflow-y: auto; overflow-wrap: anywhere; }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 1.5rem; }
+.info-grid p, .review-comment { white-space: pre-line; overflow-wrap: anywhere; }
+.info-grid h3 { margin-bottom: .6rem; }
+.badge.soldout { background: #45454d; color: white; }
+.stock-filters { flex-wrap: wrap; }
+.gallery-thumbs { display: flex; flex-wrap: wrap; gap: .5rem; margin: .75rem 0 1.5rem; }
+.gallery-thumbs button { width: 60px; height: 66px; padding: 3px; border: 1px solid #d4af37; background: #fff; cursor: pointer; border-radius: 6px; }
+.gallery-thumbs img { width: 100%; height: 100%; object-fit: contain; }
+.product-reviews { margin-top: 1.5rem; border-top: 1px solid #6b5b28; padding-top: 1rem; }
+.review-entry { padding: 1rem 0; border-bottom: 1px solid #45454d; }
+.review-form label { display: block; margin: .8rem 0; }
+.review-form input:not([type="checkbox"]), .review-form select, .review-form textarea { width: 100%; box-sizing: border-box; padding: .7rem; font: inherit; background: #18181c; color: #fff; border: 1px solid #888; border-radius: 5px; }
+.review-form textarea { resize: vertical; }
+.review-form button, .review-pages button { min-height: 44px; padding: .65rem 1rem; margin: .5rem .5rem .5rem 0; cursor: pointer; }
+.review-form button:disabled { opacity: .5; cursor: not-allowed; }
+.review-form .consent { display: flex; align-items: flex-start; gap: .6rem; }
+.consent input { margin-top: .3rem; min-width: 20px; min-height: 20px; }
+.review-status, #cartError { color: #f3d9a1; overflow-wrap: anywhere; }
+.product-reviews small { display: block; margin: .6rem 0; }
+.turnstile-slot { min-height: 70px; max-width: 100%; }
+.order-policy { margin: 1rem 0; white-space: pre-line; overflow-wrap: anywhere; }
+.order-policy summary { cursor: pointer; min-height: 44px; padding: .6rem 0; color: #e8cf81; }

@@ -1,10 +1,6 @@
 import { allProducts, config, database, errorResponse, getRate, HttpError, json, pricing, productFields, readBody, serviceHeaders, validateProduct } from '../../_lib/catalog.js';
 import { authRequest, checkOrigin, clearSession, cookies, requireAdmin, setSession } from '../../_lib/auth.js';
-
-async function readJson(request) {
-    const text = new TextDecoder().decode(await readBody(request, 20000));
-    try { return JSON.parse(text); } catch { throw new HttpError(400, 'Los datos enviados no son validos.'); }
-}
+import { positiveId, readJson, validateInfo } from '../../_lib/quality.js';
 
 async function uploadImage(request, env) {
     const type = request.headers.get('Content-Type');
@@ -72,6 +68,41 @@ export async function onRequest({ request, env, params }) {
 
         const user = await requireAdmin(env, sessionCookies['__Host-dalan_access']);
         if (path === 'session' && method === 'GET') return json({ email: user.email });
+        if (path === 'store-info' && method === 'GET') {
+            const rows = await database(env, 'store_info?select=*&id=eq.1');
+            if (!rows.length) throw new HttpError(503, 'Falta inicializar la informacion de compra.');
+            return json(rows[0]);
+        }
+        if (path === 'store-info' && method === 'PUT') {
+            const input = await readJson(request);
+            const version = positiveId(input.version);
+            const rows = await database(env, `store_info?id=eq.1&version=eq.${version}`, {
+                method: 'PATCH', headers: { Prefer: 'return=representation' },
+                body: JSON.stringify({ ...validateInfo(input), version: version + 1 })
+            });
+            if (!rows.length) throw new HttpError(409, 'Las condiciones cambiaron. Recarga antes de guardar.');
+            return json(rows[0]);
+        }
+        if (path === 'reviews' && method === 'GET') {
+            const url = new URL(request.url);
+            const state = url.searchParams.get('state') || 'pendiente';
+            const page = positiveId(Number(url.searchParams.get('page') || 1));
+            if (!['pendiente', 'aprobada', 'rechazada', 'oculta'].includes(state) || page > 10000) throw new HttpError(400, 'Filtro no valido.');
+            const reviews = await database(env, `product_reviews?select=*&estado=eq.${state}&order=created_at.desc,id.desc&limit=26&offset=${(page - 1) * 25}`);
+            return json({ reviews: reviews.slice(0, 25), hasNext: reviews.length > 25 });
+        }
+        if (path === 'reviews' && method === 'PUT') {
+            const input = await readJson(request);
+            const id = positiveId(input.id);
+            const version = positiveId(input.version);
+            if (!['aprobada', 'rechazada', 'oculta'].includes(input.estado)) throw new HttpError(400, 'Estado de resena no valido.');
+            const rows = await database(env, `product_reviews?id=eq.${id}&version=eq.${version}`, {
+                method: 'PATCH', headers: { Prefer: 'return=representation' },
+                body: JSON.stringify({ estado: input.estado, version: version + 1 })
+            });
+            if (!rows.length) throw new HttpError(409, 'Esta resena cambio. Recarga la lista.');
+            return json({ review: rows[0] });
+        }
         if (path === 'image' && method === 'POST') return await uploadImage(request, env);
         if (path === 'products' && method === 'GET') {
             const products = await allProducts(env, true);

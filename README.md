@@ -12,7 +12,7 @@ incrustados en el HTML.
 
 1. Crear un proyecto de Supabase.
 2. En su SQL Editor, ejecutar primero `supabase/schema.sql` y despues
-   `supabase/seed.sql`. Este ultimo importa los **663 productos actuales**,
+   `supabase/seed.sql` y `supabase/quality-upgrade.sql`. El seed importa los **663 productos actuales**,
    conservando IDs, referencias, costos, fotos, notas y marcas normalizadas.
    No modifica productos cuyos IDs ya existan: no usarlo como restauracion.
 3. En Authentication > Users, crear la cuenta del administrador con correo
@@ -27,6 +27,8 @@ incrustados en el HTML.
    | `SUPABASE_PUBLISHABLE_KEY` | Clave `Publishable key` (`sb_publishable_...`) del proyecto |
    | `SUPABASE_SECRET_KEY` | Clave `Secret key` (`sb_secret_...`), **como secreto** |
    | `ADMIN_EMAILS` | Correo confirmado del administrador; varios separados por coma |
+   | `TURNSTILE_SITE_KEY` | Clave publica del widget Turnstile para resenas |
+   | `TURNSTILE_SECRET_KEY` | Clave privada Turnstile, **como secreto** |
 
    Obtener las claves en la configuracion API del proyecto de Supabase.
    No pegar claves en el codigo, GitHub ni conversaciones. La clave
@@ -81,9 +83,16 @@ borra ese historial ni convierte un repositorio publico en privado.
 
 Abrir `/admin`, ingresar, buscar un producto o pulsar **Agregar perfume**.
 
-- Campos: nombre/presentacion (los ml van en el nombre), marca, referencia,
-  categoria, costo USD, disponibilidad, inspiracion/descripcion, notas y foto.
-- Fotos: subir JPG, PNG o WebP de hasta 4 MB, o pegar un enlace HTTPS.
+- Campos: nombre, presentacion opcional (por ejemplo 100 ml), marca, referencia,
+  categoria, costo USD, disponibilidad, inspiracion/descripcion, notas y galeria.
+- Disponibilidad: Disponible, Por pedido y Agotado. Agotado conserva la ficha,
+  permite consultar por WhatsApp y no se puede agregar al carrito. Al enviar el
+  pedido se revisa el catalogo vigente; cambios de precio requieren revisar el
+  nuevo total y pulsar nuevamente, y productos no disponibles deben retirarse.
+- Fotos: hasta cinco incluyendo portada; JPG, PNG o WebP de hasta 4 MB por foto,
+  o enlaces HTTPS. Subir/Bajar cambia el orden; la primera es portada. Quitar
+  solo desvincula, no borra archivos. Subidas exitosas se reutilizan si falla
+  posteriormente el guardado: no es necesario elegir de nuevo las fotos.
 - **Guardar y publicar** persiste los cambios en Supabase.
   Los clientes los ven al recargar la tienda.
 - **Ocultar** retira el producto de la tienda sin borrar sus datos.
@@ -121,6 +130,47 @@ Los valores de transporte y ganancia se definen en `pricing.js`, compartido por
 las Functions y la vista previa del panel.
 Esta primera version permite administrar los productos, no cambiar reglas de
 ganancia ni el contenido general de la portada.
+
+### Entregas y resenas
+
+- En el panel, **Entregas, pagos y condiciones** publica los textos de compra.
+  La tienda los muestra al final del catalogo, accesibles desde ficha y carrito.
+  El aviso breve de bienvenida tambien se edita aqui. Actualizarlo junto con las
+  condiciones si cambia el plazo. Ficha y carrito muestran las mismas condiciones
+  guardadas, sin mantener copias distintas en el codigo.
+- **Resenas de productos** permite revisar pendientes, aprobar, rechazar u ocultar.
+  No se modifica la opinion del cliente. Solo las aprobadas forman el listado,
+  promedio y cantidad publicos; nunca se etiquetan como compra verificada.
+- Los clientes autorizan publicar su alias, puntuacion y comentario. No pedir
+  telefono, correo ni direcciones en la resena. Turnstile procesa la conexion
+  para verificar el envio; el servidor no guarda la IP original.
+
+### Actualizar una base existente para estas mejoras
+
+1. Comprobar respaldo de Supabase y conservar el commit anterior antes de publicar.
+2. Ejecutar `supabase/quality-upgrade.sql` una sola vez antes de desplegar el codigo.
+   Es aditiva e idempotente: mantiene los estados 0/1 y agrega 2 (Agotado),
+   columnas opcionales, informacion de compra, resenas y limites antispam.
+   No volver a importar el seed. La eliminacion interna de limites vencidos afecta
+   solo contadores tecnicos, no productos, opiniones ni informacion de compra.
+3. Crear un widget Turnstile para los hostnames permitidos y configurar ambas
+   variables de Turnstile en los dos proyectos Pages, incluidos los entornos
+   Preview que vayan a utilizarse. Nunca publicar la clave privada ni usar las
+   claves de prueba en produccion.
+4. El servidor comprueba token, hostname y accion `review`. Se permiten hasta
+   tres envios por conexion durante una hora mediante un contador atomico en
+   Supabase, no memoria de Functions. Su identificador es un HMAC de la IP; al
+   rotar la clave privada se renuevan los identificadores. Los contadores vencidos
+   se limpian al procesar nuevas solicitudes.
+5. Si faltan claves, la lectura de opiniones sigue disponible pero el formulario
+   informa que los envios no estan habilitados. No declarar completa la activacion
+   ni publicar esta mejora sin comprobar la configuracion real.
+6. Probar errores, moderacion y galerias con datos simulados o una base de pruebas.
+   No insertar resenas ficticias en produccion.
+
+Para volver al codigo anterior no borrar las columnas/tablas nuevas ni estrechar
+la restriccion de disponibilidad si ya hay agotados: primero resolver su
+compatibilidad. Un tag de Git no es un respaldo de los datos de Supabase.
 
 ### Actualizar una base existente para Splash y Locion
 
@@ -161,8 +211,10 @@ Nunca usar las credenciales de produccion en pruebas automatizadas.
 
 Las pruebas usan respuestas simuladas de Supabase y de cotizacion: comprueban
 autorizacion, aislamiento de costos, formulas, validacion, conflictos, migracion
-y escape del contenido editable. No sustituyen la prueba final en tu proyecto
-real de Supabase.
+y escape del contenido editable. PGlite ejecuta la migracion y sus funciones SQL
+en PostgreSQL local en memoria, verificando permisos, conservacion de datos,
+promedios y limites de resenas. No usa credenciales ni datos de produccion.
+Estas pruebas no sustituyen la verificacion final en tu proyecto real de Supabase.
 
 Si hay un problema al activar el panel, volver al despliegue anterior de
 Cloudflare Pages. No borrar la base ni las fotos: la tienda anterior puede

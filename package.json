@@ -8,6 +8,7 @@
     "dev": "npm run build && wrangler pages dev dist"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.3.0",
     "wrangler": "^4.0.0"
   }
 }

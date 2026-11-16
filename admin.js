@@ -1,4 +1,5 @@
 import { productProfit } from './pricing.js';
+import { availability, productImages } from './product-info.js';
 
 const $ = id => document.getElementById(id);
 const form = $('product-form');
@@ -9,8 +10,12 @@ let pricing = null;
 let dirty = false;
 let busy = false;
 let page = 1;
-let pendingPhoto = null;
-let previewUrl = null;
+let gallery = [];
+let infoVersion = null;
+let infoDirty = false;
+let reviewPage = 1;
+let reviewLoading = false;
+let reviewHasNext = false;
 const pageSize = 25;
 
 function status(message, error = false) {
@@ -43,14 +48,18 @@ function sendJson(method, data) {
 }
 
 function confirmDiscard() {
-    return !dirty || window.confirm('Tienes cambios sin guardar. Deseas descartarlos?');
+    return !dirty || window.confirm('Tienes cambios de producto sin guardar. Deseas descartarlos?');
 }
 
 function setBusy(value) {
     busy = value;
     document.querySelectorAll('#panel button, #product-form input, #product-form select, #product-form textarea, #logout')
         .forEach(element => { element.disabled = value; });
-    if (!value) renderList();
+    if (!value) { renderList(); updatePhoto(); }
+    $('save-info').disabled = value || infoVersion === null;
+    $('review-state').disabled = value || reviewLoading;
+    $('review-previous').disabled = value || reviewLoading || reviewPage <= 1;
+    $('review-next').disabled = value || reviewLoading || !reviewHasNext;
 }
 
 function renderList() {
@@ -70,7 +79,7 @@ function renderList() {
         button.setAttribute('aria-pressed', String(selected?.id === product.id));
         button.textContent = product.nombre;
         const detail = document.createElement('small');
-        detail.textContent = `${product.marca || 'Sin marca'} · USD ${product.precioUSD} · ${product.oculto ? 'Oculto' : product.tipoStock === 1 ? 'En stock' : 'Por pedido'}`;
+        detail.textContent = `${product.marca || 'Sin marca'} · USD ${product.precioUSD} · ${product.oculto ? 'Oculto' : availability(product).label}`;
         button.append(detail);
         button.disabled = busy;
         button.addEventListener('click', () => {
@@ -85,21 +94,39 @@ function renderList() {
 }
 
 function clearPendingPhoto() {
-    pendingPhoto = null;
+    for (const entry of gallery) if (entry.file) URL.revokeObjectURL(entry.url);
+    gallery = [];
     $('photo-file').value = '';
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    previewUrl = null;
 }
 
 function updatePhoto() {
-    const value = previewUrl || form.elements.imagen.value.trim();
-    let safe = !!previewUrl;
-    if (!safe && value) {
-        try { safe = new URL(value).protocol === 'https:'; } catch { safe = false; }
-    }
-    $('photo-preview').hidden = !safe;
-    if (safe) $('photo-preview').src = value;
+    const value = gallery[0]?.url;
+    form.elements.imagen.value = value || '';
+    $('photo-preview').hidden = !value;
+    if (value) $('photo-preview').src = value;
     else $('photo-preview').removeAttribute('src');
+    $('gallery-editor').replaceChildren();
+    gallery.forEach((entry, index) => {
+        const row = document.createElement('div');
+        row.className = 'gallery-row';
+        const img = document.createElement('img');
+        img.src = entry.url; img.alt = index === 0 ? 'Portada' : `Foto ${index + 1}`;
+        const label = document.createElement('span');
+        label.textContent = `${index === 0 ? 'Portada' : `Foto ${index + 1}`}${entry.file ? ' (pendiente de subir)' : ''}`;
+        row.append(img, label);
+        for (const [text, action, disabled] of [
+            ['Subir', () => { [gallery[index - 1], gallery[index]] = [gallery[index], gallery[index - 1]]; }, index === 0],
+            ['Bajar', () => { [gallery[index + 1], gallery[index]] = [gallery[index], gallery[index + 1]]; }, index === gallery.length - 1],
+            ['Quitar', () => { if (entry.file) URL.revokeObjectURL(entry.url); gallery.splice(index, 1); }, false]
+        ]) {
+            const button = document.createElement('button');
+            button.type = 'button'; button.className = 'secondary'; button.textContent = text; button.disabled = busy || disabled;
+            button.setAttribute('aria-label', `${text} foto ${index + 1}`);
+            button.onclick = () => { action(); dirty = true; updatePhoto(); };
+            row.append(button);
+        }
+        $('gallery-editor').append(row);
+    });
 }
 
 function previewPrice() {
@@ -123,10 +150,10 @@ function edit(product = null) {
     selected = product ? { ...product } : null;
     form.reset();
     clearPendingPhoto();
-    for (const field of ['nombre', 'marca', 'referencia', 'inspiracion', 'notas', 'precioUSD', 'tipoStock', 'categoria']) {
+    for (const field of ['nombre', 'marca', 'referencia', 'inspiracion', 'notas', 'precioUSD', 'tipoStock', 'categoria', 'presentacion']) {
         if (product) form.elements[field].value = product[field] ?? '';
     }
-    form.elements.imagen.value = product?.imagen === 'Imagen no disponible' ? '' : product?.imagen || '';
+    gallery = product ? productImages(product).map(url => ({ url })) : [];
     form.elements.oculto.checked = product?.oculto || false;
     $('editor-title').textContent = product ? `Editar producto #${product.id}` : 'Agregar producto';
     dirty = false;
@@ -158,7 +185,10 @@ async function showPanel(email) {
     $('panel').hidden = false;
     $('logout').hidden = false;
     setBusy(true);
-    try { await loadProducts(dirty); } finally { setBusy(false); }
+    try {
+        await loadProducts(dirty);
+        await Promise.all([infoDirty ? Promise.resolve() : loadInfo(), loadReviews()]);
+    } finally { setBusy(false); }
 }
 
 $('login-form').addEventListener('submit', async event => {
@@ -180,20 +210,28 @@ $('login-form').addEventListener('submit', async event => {
 });
 
 form.addEventListener('input', () => { dirty = true; previewPrice(); });
-form.elements.imagen.addEventListener('input', () => { clearPendingPhoto(); updatePhoto(); });
 $('photo-file').addEventListener('change', event => {
-    const file = event.target.files[0];
-    if (!file) return;
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 4 * 1024 * 1024) {
+    const files = [...event.target.files];
+    if (!files.length) return;
+    if (files.length + gallery.length > 5 || files.some(file => !['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 4 * 1024 * 1024)) {
         event.target.value = '';
-        status('Selecciona una foto JPG, PNG o WebP de hasta 4 MB.', true);
+        status('Maximo cinco fotos en total. Cada foto debe ser JPG, PNG o WebP de hasta 4 MB.', true);
         return;
     }
-    clearPendingPhoto();
-    pendingPhoto = file;
-    previewUrl = URL.createObjectURL(file);
+    gallery.push(...files.map(file => ({ file, url: URL.createObjectURL(file) })));
+    event.target.value = '';
     dirty = true;
     updatePhoto();
+});
+$('add-photo-url').addEventListener('click', () => {
+    const value = $('gallery-url').value.trim();
+    try {
+        const url = new URL(value);
+        if (url.protocol !== 'https:' || url.username || url.password) throw new Error('Usa un enlace HTTPS sin credenciales.');
+        if (gallery.length >= 5) throw new Error('Ya hay cinco fotos en la galeria.');
+        if (gallery.some(entry => entry.url === value)) throw new Error('Esta foto ya esta en la galeria.');
+        gallery.push({ url: value }); dirty = true; $('gallery-url').value = ''; updatePhoto();
+    } catch (error) { status(`No se agrego la foto: ${error.message}`, true); }
 });
 $('photo-preview').addEventListener('error', () => {
     $('photo-preview').hidden = true;
@@ -214,6 +252,7 @@ form.addEventListener('submit', async event => {
         marca: form.elements.marca.value,
         referencia: form.elements.referencia.value,
         inspiracion: form.elements.inspiracion.value,
+        presentacion: form.elements.presentacion.value,
         notas: form.elements.notas.value,
         imagen: form.elements.imagen.value,
         precioUSD: Number(form.elements.precioUSD.value),
@@ -225,13 +264,16 @@ form.addEventListener('submit', async event => {
     setBusy(true);
     status('Guardando...');
     try {
-        if (pendingPhoto) {
-            const photo = await request('image', { method: 'POST', headers: { 'Content-Type': pendingPhoto.type }, body: pendingPhoto });
-            product.imagen = photo.url;
-            form.elements.imagen.value = photo.url;
-            clearPendingPhoto();
-            updatePhoto();
+        for (const entry of gallery) {
+            if (!entry.file) continue;
+            const photo = await request('image', { method: 'POST', headers: { 'Content-Type': entry.file.type }, body: entry.file });
+            URL.revokeObjectURL(entry.url);
+            entry.url = photo.url;
+            delete entry.file;
         }
+        product.imagen = gallery[0]?.url || '';
+        product.imagenes = gallery.slice(1).map(entry => entry.url);
+        updatePhoto();
         const data = await request('products', sendJson(selected ? 'PUT' : 'POST', product));
         const index = products.findIndex(item => item.id === data.product.id);
         if (index >= 0) products[index] = data.product;
@@ -250,17 +292,19 @@ $('discard').addEventListener('click', () => { if (!busy && confirmDiscard()) ed
 $('reload').addEventListener('click', async () => {
     if (busy || !confirmDiscard()) return;
     setBusy(true);
-    try { await loadProducts(); } catch (error) { status(error.message, true); } finally { setBusy(false); }
+    try { await loadProducts(); await loadReviews(); } catch (error) { status(error.message, true); } finally { setBusy(false); }
 });
 for (const id of ['search', 'visibility']) $(id).addEventListener('input', () => { page = 1; renderList(); });
 $('previous').addEventListener('click', () => { page--; renderList(); });
 $('next').addEventListener('click', () => { page++; renderList(); });
 $('logout').addEventListener('click', async () => {
-    if (busy || !confirmDiscard()) return;
+    if (busy || !confirmDiscard() || (infoDirty && !window.confirm('Hay condiciones sin guardar. Deseas cerrar sesion?'))) return;
     setBusy(true);
     try {
         await request('session', { method: 'DELETE' }, false);
         dirty = false;
+        infoDirty = false;
+        infoVersion = null;
         products = [];
         edit();
         showLogin();
@@ -268,8 +312,87 @@ $('logout').addEventListener('click', async () => {
     } catch (error) { status(error.message, true); } finally { setBusy(false); }
 });
 window.addEventListener('beforeunload', event => {
-    if (dirty || busy) { event.preventDefault(); event.returnValue = ''; }
+    if (dirty || infoDirty || busy) { event.preventDefault(); event.returnValue = ''; }
 });
+
+async function loadInfo() {
+    try {
+        const info = await request('store-info');
+        for (const field of ['entregas', 'pagos', 'pedidos', 'aviso']) $('info-form').elements[field].value = info[field];
+        infoVersion = info.version; infoDirty = false;
+        $('info-status').textContent = 'Los cambios se publican al guardar.';
+        $('save-info').disabled = false;
+    } catch (error) { $('info-status').textContent = error.message; }
+}
+$('info-form').addEventListener('input', () => { infoDirty = true; });
+$('reload-info').addEventListener('click', () => {
+    if (!busy && (!infoDirty || window.confirm('Descartar las condiciones sin guardar?'))) loadInfo();
+});
+$('info-form').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (busy || !infoVersion) return;
+    setBusy(true);
+    try {
+        const elements = event.currentTarget.elements;
+        const data = await request('store-info', sendJson('PUT', {
+            version: infoVersion, entregas: elements.entregas.value,
+            pagos: elements.pagos.value, pedidos: elements.pedidos.value, aviso: elements.aviso.value
+        }));
+        infoVersion = data.version; infoDirty = false;
+        $('info-status').textContent = 'Condiciones guardadas y publicadas.';
+    } catch (error) { $('info-status').textContent = `${error.message} Tus cambios siguen en el formulario.`; }
+    finally { setBusy(false); }
+});
+
+async function loadReviews() {
+    if (reviewLoading) return;
+    reviewLoading = true;
+    $('review-state').disabled = true;
+    $('review-previous').disabled = true;
+    $('review-next').disabled = true;
+    $('review-status').textContent = 'Cargando resenas...';
+    try {
+        const data = await request(`reviews?state=${$('review-state').value}&page=${reviewPage}`);
+        $('review-list').replaceChildren();
+        for (const review of data.reviews) {
+            const article = document.createElement('article');
+            article.className = 'review-admin';
+            const title = document.createElement('h3');
+            title.textContent = products.find(product => product.id === review.product_id)?.nombre || `Producto #${review.product_id}`;
+            const author = document.createElement('p');
+            author.textContent = `${review.autor} · ${review.puntuacion}/5 · ${new Date(review.created_at).toLocaleDateString('es-BO')}`;
+            const comment = document.createElement('p');
+            comment.className = 'review-comment'; comment.textContent = review.comentario;
+            article.append(title, author, comment);
+            for (const [text, state] of [['Aprobar', 'aprobada'], ['Rechazar', 'rechazada'], ['Ocultar', 'oculta']]) {
+                if (state === review.estado) continue;
+                const button = document.createElement('button');
+                button.type = 'button'; button.textContent = text;
+                button.onclick = async () => {
+                    if (busy || reviewLoading) return;
+                    setBusy(true);
+                    try {
+                        await request('reviews', sendJson('PUT', { id: review.id, version: review.version, estado: state }));
+                        await loadReviews();
+                    } catch (error) { $('review-status').textContent = error.message; }
+                    finally { setBusy(false); }
+                };
+                article.append(button);
+            }
+            $('review-list').append(article);
+        }
+        $('review-status').textContent = data.reviews.length ? 'Solo las aprobadas aparecen en la tienda.' : 'No hay resenas en este estado.';
+        $('review-page').textContent = `Pagina ${reviewPage}`;
+        $('review-previous').disabled = reviewPage <= 1;
+        reviewHasNext = data.hasNext;
+        $('review-next').disabled = !reviewHasNext;
+    } catch (error) { $('review-status').textContent = error.message; }
+    finally { reviewLoading = false; $('review-state').disabled = false; }
+}
+$('review-state').addEventListener('change', () => { reviewPage = 1; loadReviews(); });
+$('reload-reviews').addEventListener('click', () => { if (!busy) loadReviews(); });
+$('review-previous').addEventListener('click', () => { if (!reviewLoading && !busy && reviewPage > 1) { reviewPage--; loadReviews(); } });
+$('review-next').addEventListener('click', () => { if (!reviewLoading && !busy) { reviewPage++; loadReviews(); } });
 
 async function initialize() {
     try {

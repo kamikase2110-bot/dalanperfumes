@@ -1205,6 +1205,8 @@
             *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
         }
     </style>
+    <link rel="stylesheet" href="/quality.css">
+    <script src="/storefront-quality.js" defer></script>
 </head>
 <body>
 
@@ -1215,7 +1217,7 @@
             </button>
             <span class="promo-eyebrow">DALAN Perfumería</span>
             <h2 id="promoTitle">Productos 100% originales</h2>
-            <p id="promoDescription">Compra con confianza en DALAN. Los pedidos especiales tardan de 5 a 7 días en llegar.</p>
+            <p id="promoDescription">Compra con confianza en DALAN. Consulta las condiciones de entrega y de los pedidos especiales.</p>
             <a class="promo-cta" href="#catalogo" onclick="cerrarPromocion()">Ver catálogo <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
         </section>
     </div>
@@ -1308,8 +1310,9 @@
             </div>
             <div class="stock-filters" aria-label="Filtrar disponibilidad">
                 <button class="stock-filter-btn active" data-stock-filter="all" onclick="seleccionarFiltroStock('all')">Todos</button>
-                <button class="stock-filter-btn" data-stock-filter="stock" onclick="seleccionarFiltroStock('stock')">En stock</button>
+                <button class="stock-filter-btn" data-stock-filter="stock" onclick="seleccionarFiltroStock('stock')">Disponible</button>
                 <button class="stock-filter-btn" data-stock-filter="order" onclick="seleccionarFiltroStock('order')">Por pedido</button>
+                <button class="stock-filter-btn" data-stock-filter="soldout" onclick="seleccionarFiltroStock('soldout')">Agotado</button>
             </div>
             <button class="filter-clear" type="button" onclick="limpiarFiltros()">Limpiar filtros</button>
             </div>
@@ -1331,6 +1334,12 @@
         </div>
         <nav class="pagination" id="pagination" aria-label="Paginación de productos"></nav>
     </div>
+
+    <section id="informacionCompra" class="buying-info" aria-labelledby="buyingTitle">
+        <h2 id="buyingTitle">Compra con confianza en DALAN</h2>
+        <div id="storeInfo" role="status">Cargando entregas y condiciones...</div>
+        <button type="button" class="details-btn" onclick="dalanQuality.loadInfo()">Actualizar informaci&oacute;n</button>
+    </section>
 
     <dialog id="productDialog" class="catalog-dialog" aria-labelledby="detailTitle" onclick="cerrarDesdeFondo(event)">
         <button type="button" class="dialog-close" onclick="cerrarDialogo('productDialog')" aria-label="Cerrar detalles">✕</button>
@@ -1356,7 +1365,10 @@
                 <span>Total Estimado:</span>
                 <span id="cart-total-price" style="color: var(--gold);">Bs 0</span>
             </div>
-            <button class="whatsapp-checkout-btn" onclick="sendToWhatsApp()">
+            <p><a href="#informacionCompra" onclick="toggleCart()">Ver entregas, pagos y condiciones</a></p>
+            <details class="order-policy"><summary>Condiciones de pedidos especiales</summary><p data-order-policy>Cargando condiciones...</p></details>
+            <p id="cartError" role="status" aria-live="polite"></p>
+            <button class="whatsapp-checkout-btn" id="checkoutButton" onclick="sendToWhatsApp()">
                 <i class="fa-brands fa-whatsapp" style="font-size: 1.2rem;"></i> Enviar Pedido por WhatsApp
             </button>
         </div>
@@ -1365,6 +1377,8 @@
     <script>
         let perfumesDB = [];
         let obtenerTipoProducto;
+        let obtenerDisponibilidad;
+        let imagenesProducto;
 
         function escapeHtml(value) {
             return String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -1379,6 +1393,7 @@
             reintentar.hidden = true;
             try {
                 ({ productType: obtenerTipoProducto } = await import('./product-types.js'));
+                ({ availability: obtenerDisponibilidad, productImages: imagenesProducto } = await import('./product-info.js'));
                 const response = await fetch('/api/catalog', { cache: 'no-store' });
                 if (!response.ok) throw new Error('No se pudo cargar el catalogo (' + response.status + ').');
                 const data = await response.json();
@@ -1448,9 +1463,9 @@
             }
 
             productosDePagina.forEach(p => {
-                const enStock = Number(p.tipoStock) === 1;
-                const estadoTexto = enStock ? 'En stock' : 'Por pedido';
-                const badgeClass = enStock ? 'stock' : 'order';
+                const disponibilidad = obtenerDisponibilidad(p);
+                const estadoTexto = disponibilidad.label;
+                const badgeClass = disponibilidad.className;
                 const estadoValidacion = obtenerEstadoValidacion(p);
                 grid.innerHTML += `
                     <div class="product-card">
@@ -1518,9 +1533,7 @@
             if (resetPage) paginaActual = 1;
             const query = document.getElementById('searchInput').value.toLowerCase();
             const filtered = perfumesDB.filter(p => 
-                (filtroStockActual === 'all' ||
-                    (filtroStockActual === 'order' && Number(p.tipoStock) !== 1) ||
-                    (filtroStockActual === 'stock' && Number(p.tipoStock) === 1)) &&
+                (filtroStockActual === 'all' || obtenerDisponibilidad(p).filter === filtroStockActual) &&
                 (filtroMarcaActual === 'all' || (p.marca || '').trim().toLocaleLowerCase() === filtroMarcaActual.toLocaleLowerCase()) &&
                 (filtroTipoActual === 'all' || obtenerTipoProducto(p) === filtroTipoActual) &&
                 (p.nombre.toLowerCase().includes(query) ||
@@ -1548,7 +1561,7 @@
             const activos = [
                 filtroMarcaActual !== 'all' ? `Marca: ${filtroMarcaActual}` : '',
                 filtroTipoActual !== 'all' ? `Tipo: ${document.getElementById('typeFilter').selectedOptions[0].textContent}` : '',
-                filtroStockActual !== 'all' ? (filtroStockActual === 'stock' ? 'En stock' : 'Por pedido') : '',
+                filtroStockActual !== 'all' ? ({ stock: 'Disponible', order: 'Por pedido', soldout: 'Agotado' }[filtroStockActual]) : '',
                 ordenPrecioActual !== 'default' ? (ordenPrecioActual === 'price-asc' ? 'Precio: menor a mayor' : 'Precio: mayor a menor') : ''
             ].filter(Boolean);
             document.getElementById('filterCount').textContent = activos.length;
@@ -1571,6 +1584,7 @@
         }
 
         function accionesProducto(p) {
+            if (!obtenerDisponibilidad(p).purchasable) return `<button class="add-to-cart-btn" onclick="consultarPrecioProducto(${p.id})">Consultar disponibilidad</button>`;
             return requiereConsultaPrecio(p)
                 ? `<button class="add-to-cart-btn" onclick="consultarPrecioProducto(${p.id})" title="Consultar por WhatsApp"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Consultar precio</button>`
                 : `<span class="product-price">Bs ${Math.round(p.precio)}</span><button class="add-to-cart-btn" onclick="addToCart(${p.id})">Agregar</button>`;
@@ -1578,20 +1592,37 @@
 
         function verProducto(id) {
             const p = perfumesDB.find(producto => producto.id === id);
+            const fotos = imagenesProducto(p);
             const notas = (p.notas || '').split(',').map(nota => nota.trim().replace(/\.$/, '')).filter(nota => nota && !/^notas no disponibles$/i.test(nota));
             document.getElementById('productDetail').innerHTML = `
-                ${p.imagen === 'Imagen no disponible'
+                ${!fotos.length
                     ? '<p class="product-img-placeholder">Imagen no disponible</p>'
-                    : `<img class="detail-image" src="${escapeHtml(p.imagen)}" alt="${escapeHtml(p.nombre)}">`}
+                    : `<img id="detailImage" class="detail-image" src="${escapeHtml(fotos[0])}" alt="${escapeHtml(p.nombre)}" onerror="this.hidden=true;document.getElementById('photoError').hidden=false">
+                    <p id="photoError" role="status" hidden>No se pudo cargar esta foto. Prueba otra imagen.</p>
+                    <div class="gallery-thumbs">${fotos.map((url, index) => `<button type="button" onclick="mostrarFotoProducto(${p.id},${index})" aria-label="Ver foto ${index + 1}"><img src="${escapeHtml(url)}" alt="Foto ${index + 1}" loading="lazy"></button>`).join('')}</div>`}
                 <p class="product-brand">${escapeHtml(p.marca)}</p>
                 <h2 id="detailTitle">${escapeHtml(p.nombre)}</h2>
-                <p class="detail-stock">${Number(p.tipoStock) === 1 ? 'En stock' : 'Por pedido'}</p>
+                <p class="detail-stock">${obtenerDisponibilidad(p).label}</p>
+                ${p.presentacion ? `<p>Presentaci&oacute;n: ${escapeHtml(p.presentacion)}</p>` : ''}
+                ${Number(p.tipoStock) === 0 ? '<details class="order-policy"><summary>Anticipo, plazo y condiciones de este pedido</summary><p data-order-policy>Cargando condiciones...</p></details>' : ''}
+                <a href="#informacionCompra" onclick="cerrarDialogo('productDialog')">Ver entregas, pagos y condiciones</a>
                 <div class="inspiration-box">${escapeHtml(p.inspiracion || 'Descripción no disponible.')}</div>
                 <div class="product-notes"><span class="product-notes-title">Notas</span>
                     ${notas.length ? `<div class="note-chips">${notas.map(nota => `<span class="note-chip note-chip-${obtenerFamiliaNota(nota)}">${escapeHtml(nota)}</span>`).join('')}</div>` : '<p>Notas no disponibles.</p>'}
                 </div>
-                <div class="product-footer">${accionesProducto(p)}</div>`;
+                <div class="product-footer">${accionesProducto(p)}</div>
+                <section id="productReviews" class="product-reviews" aria-label="Reseñas del producto"></section>`;
             abrirDialogo('productDialog');
+            globalThis.dalanQuality?.showConditions();
+            globalThis.dalanQuality?.loadReviews(p.id);
+        }
+
+        function mostrarFotoProducto(id, index) {
+            const product = perfumesDB.find(item => item.id === id);
+            const image = document.getElementById('detailImage');
+            image.hidden = false;
+            document.getElementById('photoError').hidden = true;
+            image.src = imagenesProducto(product)[index];
         }
 
         let dialogoActivo = null;
@@ -1649,7 +1680,7 @@
 
         function addToCart(id) {
             const product = perfumesDB.find(p => p.id === id);
-            if (!product || requiereConsultaPrecio(product)) return;
+            if (!product || requiereConsultaPrecio(product) || !obtenerDisponibilidad(product).purchasable) return;
             const existing = cart.find(item => item.id === id);
 
             if(existing) {
@@ -1684,6 +1715,10 @@
         function changeQuantity(id, change) {
             const item = cart.find(i => i.id === id);
             if(item) {
+                if (change > 0 && !obtenerDisponibilidad(perfumesDB.find(product => product.id === id) || item).purchasable) {
+                    document.getElementById('cartError').textContent = 'Este producto ya no esta disponible. Puedes retirarlo del carrito.';
+                    return;
+                }
                 item.quantity += change;
                 if(item.quantity <= 0) {
                     cart = cart.filter(i => i.id !== id);
@@ -1712,7 +1747,7 @@
                         <div class="cart-item">
                             <div class="cart-item-info">
                                 <h4>${escapeHtml(nombreProducto)}</h4>
-                                <span>Bs ${Math.round(item.precio)} x ${item.quantity}</span>
+                                <span>Bs ${Math.round(item.precio)} x ${item.quantity} · ${obtenerDisponibilidad(item).label}</span>
                             </div>
                             <div class="cart-item-actions">
                                 <button onclick="changeQuantity(${item.id}, -1)">-</button>
@@ -1726,10 +1761,38 @@
 
             cartCount.innerText = totalItems;
             cartTotalPrice.innerText = `Bs ${Math.round(totalPrice)}`;
+            globalThis.dalanQuality?.showConditions();
         }
 
-        function sendToWhatsApp() {
+        async function sendToWhatsApp() {
             if(cart.length === 0) return;
+            const button = document.getElementById('checkoutButton');
+            const status = document.getElementById('cartError');
+            if (button.disabled) return;
+            button.disabled = true;
+            status.textContent = 'Verificando disponibilidad...';
+            try {
+                const response = await fetch('/api/catalog', { cache: 'no-store' });
+                if (!response.ok) throw new Error('No se pudo verificar el pedido. Intenta nuevamente.');
+                const data = await response.json();
+                if (!Array.isArray(data.products)) throw new Error('La disponibilidad recibida no es valida.');
+                if (!cart.length) { status.textContent = ''; return; }
+                const current = new Map(data.products.map(product => [product.id, product]));
+                const unavailable = cart.filter(item => !current.has(item.id) || !obtenerDisponibilidad(current.get(item.id)).purchasable);
+                perfumesDB = data.products;
+                if (unavailable.length) throw new Error('Retira los productos que ya no estan disponibles: ' + unavailable.map(item => item.nombre).join(', '));
+                if (cart.some(item => requiereConsultaPrecio(current.get(item.id)))) throw new Error('No se pudo confirmar el precio. Consulta por WhatsApp o intenta nuevamente.');
+                const changed = cart.some(item => item.precio !== current.get(item.id).precio);
+                for (const item of cart) {
+                    item.tipoStock = current.get(item.id).tipoStock;
+                    item.precio = current.get(item.id).precio;
+                }
+                updateCartUI();
+                if (changed) {
+                    status.textContent = 'Los precios se actualizaron con la cotizacion vigente. Revisa el total y pulsa de nuevo para continuar.';
+                    return;
+                }
+                status.textContent = '';
 
             const phoneNumber = "59176609312"; // Número de WhatsApp configurado
 
@@ -1745,6 +1808,7 @@
             });
 
             message += `\n*Total Estimado: Bs ${Math.round(total)}*\n\nPor favor, indíquenme los datos para realizar el pago. ¡Gracias!`;
+            message += '\nCondiciones de entrega, pagos y pedidos especiales: https://dalanperfumes.pages.dev/#informacionCompra';
 
             const encodedMessage = encodeURIComponent(message);
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -1753,7 +1817,12 @@
                 ? `https://api.whatsapp.com/send?phone=${phoneNumber}&text=${encodedMessage}`
                 : `whatsapp://send?phone=${phoneNumber}&text=${encodedMessage}`;
 
-            window.open(whatsappUrl, '_blank');
+            const popup = window.open(whatsappUrl, '_blank');
+            if (popup) popup.opener = null;
+            else window.location.href = whatsappUrl;
+            } catch (error) {
+                status.textContent = error.message;
+            } finally { button.disabled = false; }
         }
 
         let pasoDecant = 1;

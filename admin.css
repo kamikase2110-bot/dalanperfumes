@@ -36,4 +36,11 @@ p, small { color: var(--muted); }
 fieldset { border: 1px solid #62626c; border-radius: 8px; margin: 18px 0; min-width: 0; }
 #photo-preview { width: 160px; height: 180px; object-fit: contain; display: block; margin: 14px auto; background: #fff; border-radius: 8px; }
 #price-preview { display: block; color: #f3e5ab; padding: 12px; border: 1px solid #6b5b28; border-radius: 8px; }
+.quality-admin { margin-top: 20px; }
+.gallery-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.gallery-row img { width: 60px; height: 65px; object-fit: contain; background: white; }
+.gallery-row span { flex: 1 1 120px; }
+.review-admin { border-top: 1px solid #62626c; padding: 16px 0; }
+.review-admin button { margin: 4px; }
+.review-comment { white-space: pre-line; overflow-wrap: anywhere; }
 @media (max-width: 800px) { .workspace, .columns { grid-template-columns: 1fr; } main { padding: 12px; } .product-list { max-height: 320px; } header { flex-wrap: wrap; } .card { padding: 16px; } }

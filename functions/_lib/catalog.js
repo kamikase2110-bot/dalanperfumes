@@ -1,8 +1,9 @@
 import { pricing, productProfit } from '../../pricing.js';
+import { availability } from '../../product-info.js';
 
 export { pricing };
-export const productFields = 'id,referencia,nombre,marca,tipoStock,inspiracion,notas,imagen,precioUSD,categoria,oculto,version';
-export const publicFields = 'id,referencia,nombre,marca,tipoStock,inspiracion,notas,imagen,categoria';
+export const productFields = 'id,referencia,nombre,marca,tipoStock,inspiracion,notas,imagen,imagenes,presentacion,precioUSD,categoria,oculto,version';
+export const publicFields = 'id,referencia,nombre,marca,tipoStock,inspiracion,notas,imagen,imagenes,presentacion,categoria';
 
 export class HttpError extends Error {
     constructor(status, message) {
@@ -100,7 +101,7 @@ export function calculatePrice(product, rate) {
 export function toPublic(product, rate) {
     const result = {};
     for (const key of publicFields.split(',')) result[key] = product[key];
-    return { ...result, estadoTexto: product.tipoStock === 1 ? 'En stock' : 'Por pedido', precio: calculatePrice(product, rate) };
+    return { ...result, estadoTexto: availability(product).label, precio: calculatePrice(product, rate) };
 }
 
 export async function getRate() {
@@ -128,7 +129,7 @@ export function validateProduct(input) {
     if (typeof input.precioUSD !== 'number' || !Number.isFinite(input.precioUSD) || input.precioUSD < 0 || input.precioUSD > 100000) {
         throw new HttpError(400, 'El costo USD debe estar entre 0 y 100000. Usa 0 solo para mostrar "Consultar precio".');
     }
-    if (![0, 1].includes(input.tipoStock)) throw new HttpError(400, 'Disponibilidad no valida.');
+    if (![0, 1, 2].includes(input.tipoStock)) throw new HttpError(400, 'Disponibilidad no valida.');
     if (!['perfume', 'desodorante', 'mini', 'splash', 'locion'].includes(input.categoria)) throw new HttpError(400, 'Categoria no valida.');
     if (typeof input.oculto !== 'boolean') throw new HttpError(400, 'Visibilidad no valida.');
     if (!result.imagen) result.imagen = 'Imagen no disponible';
@@ -137,6 +138,21 @@ export function validateProduct(input) {
         try { url = new URL(result.imagen); } catch { throw new HttpError(400, 'La foto debe ser un enlace HTTPS.'); }
         if (url.protocol !== 'https:' || url.username || url.password) throw new HttpError(400, 'La foto debe ser un enlace HTTPS.');
     }
+    if (typeof (input.presentacion ?? '') !== 'string' || (input.presentacion || '').trim().length > 100) {
+        throw new HttpError(400, 'La presentacion admite hasta 100 caracteres.');
+    }
+    result.presentacion = (input.presentacion || '').trim();
+    const images = input.imagenes ?? [];
+    if (!Array.isArray(images) || images.length > 4) throw new HttpError(400, 'Se permiten hasta cinco fotos, incluida la portada.');
+    result.imagenes = images.map(image => {
+        if (typeof image !== 'string' || image.length > 2048) throw new HttpError(400, 'Foto adicional no valida.');
+        let url;
+        try { url = new URL(image); } catch { throw new HttpError(400, 'Cada foto debe ser un enlace HTTPS.'); }
+        if (url.protocol !== 'https:' || url.username || url.password) throw new HttpError(400, 'Cada foto debe ser un enlace HTTPS.');
+        return image;
+    });
+    if (images.length && result.imagen === 'Imagen no disponible') throw new HttpError(400, 'Selecciona una portada antes de agregar fotos.');
+    if (new Set([result.imagen, ...images]).size !== images.length + 1) throw new HttpError(400, 'Hay fotos repetidas en la galeria.');
     result.referencia = result.referencia || null;
     return { ...result, precioUSD: input.precioUSD, tipoStock: input.tipoStock, categoria: input.categoria, oculto: input.oculto };
 }

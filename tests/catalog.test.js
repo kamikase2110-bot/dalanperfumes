@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import { pricing, productProfit } from '../pricing.js';
 import { productType } from '../product-types.js';
+import { availability, productImages } from '../product-info.js';
 import { allProducts, calculatePrice, serviceHeaders, toPublic, validateProduct } from '../functions/_lib/catalog.js';
 import { onRequestGet } from '../functions/api/catalog.js';
 import { onRequest } from '../functions/api/admin/[[path]].js';
@@ -54,7 +55,7 @@ test('product validation rejects invalid costs, fields, visibility and unsafe im
     for (const patch of [
         { precioUSD: -1 }, { precioUSD: '4' }, { precioUSD: Infinity },
         { precioUSD: 100001 }, { nombre: '' }, { nombre: 'x'.repeat(501) },
-        { categoria: 'otra' }, { tipoStock: 2 }, { oculto: 'false' },
+        { categoria: 'otra' }, { tipoStock: 3 }, { oculto: 'false' },
         { imagen: 'javascript:alert(1)' }, { imagen: 'http://example.test/a.jpg' },
         { imagen: 'https://user:password@example.test/a.jpg' }, { referencia: null }
     ]) assert.throws(() => validateProduct({ ...product, ...patch }), { status: 400 });
@@ -321,14 +322,14 @@ async function storefront() {
         return nodes.get(id);
     };
     const context = {
-        productType,
+        productType, availability, productImages,
         document: { getElementById: node, querySelectorAll: () => [], querySelector: () => null, body: { style: {} } },
         matchMedia: () => ({ matches: true })
     };
     vm.createContext(context);
     const script = scripts.find(text => text.includes('let perfumesDB'));
     vm.runInContext(script.slice(0, script.indexOf("        document.querySelectorAll('.catalog-dialog')")), context);
-    vm.runInContext('obtenerTipoProducto = productType;', context);
+    vm.runInContext('obtenerTipoProducto = productType; obtenerDisponibilidad = availability; imagenesProducto = productImages;', context);
     return { html, node, context, run: source => vm.runInContext(source, context) };
 }
 
@@ -467,4 +468,53 @@ test('decant rejects blank names and missing, nonfinite or nonpositive ml with v
         assert.ok(node('decantMl').validationMessage);
         assert.equal(run('pasoDecant'), 2);
     }
+});
+
+test('sold-out products stay distinct in filters and cannot be added or increased', async () => {
+    const { run, node } = await storefront();
+    run(`perfumesDB = ${JSON.stringify([
+        { ...product, tipoStock: 0, id: 1, precio: 100 },
+        { ...product, tipoStock: 1, id: 2, precio: 100 },
+        { ...product, tipoStock: 2, id: 3, precio: 100 }
+    ])}; filtroStockActual='order'; filterProducts();`);
+    assert.match(node('products-grid').innerHTML, /verProducto\(1\)/);
+    assert.doesNotMatch(node('products-grid').innerHTML, /verProducto\(3\)/);
+    run("filtroStockActual='soldout'; filterProducts(); addToCart(3);");
+    assert.equal(run('cart.length'), 0);
+    assert.match(node('products-grid').innerHTML, /Consultar disponibilidad/);
+    assert.doesNotMatch(node('products-grid').innerHTML, /addToCart\(3\)/);
+    run("cart=[{...perfumesDB[2],quantity:1}]; changeQuantity(3,1);");
+    assert.equal(run('cart[0].quantity'), 1);
+    assert.match(node('cartError').textContent, /no esta disponible/);
+});
+
+test('product gallery and presentation render escaped complete information', async () => {
+    const { run, node } = await storefront();
+    run(`perfumesDB=[${JSON.stringify({
+        ...product, precio: 100, presentacion: '100 ml <script>',
+        imagen: 'https://example.test/cover.jpg', imagenes: ['https://example.test/other.jpg']
+    })}]; verProducto(507);`);
+    assert.match(node('productDetail').innerHTML, /100 ml &lt;script&gt;/);
+    assert.match(node('productDetail').innerHTML, /mostrarFotoProducto\(507,1\)/);
+    assert.match(node('productDetail').innerHTML, /informacionCompra/);
+});
+
+test('checkout rechecks availability, refuses sold-out items and requires acknowledgment of updated prices', async () => {
+    const { run, node, context } = await storefront();
+    const original = { ...product, precio: 100, tipoStock: 1 };
+    let opened = 0;
+    context.window = { open: () => { opened++; return { opener: null }; } };
+    context.navigator = { userAgent: 'test' };
+    run(`perfumesDB=[${JSON.stringify(original)}];cart=[{...perfumesDB[0],quantity:1}];`);
+    context.fetch = async () => Response.json({ products: [{ ...original, tipoStock: 2 }] });
+    await run('sendToWhatsApp();');
+    assert.equal(opened, 0);
+    assert.match(node('cartError').textContent, /Retira los productos/);
+    context.fetch = async () => Response.json({ products: [{ ...original, precio: 120 }] });
+    await run('sendToWhatsApp();');
+    assert.equal(opened, 0);
+    assert.equal(run('cart[0].precio'), 120);
+    assert.match(node('cartError').textContent, /Revisa el total/);
+    await run('sendToWhatsApp();');
+    assert.equal(opened, 1);
 });
