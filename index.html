@@ -9326,8 +9326,7 @@
         }
 
         function requiereConsultaPrecio(producto) {
-            const nombre = producto.nombre.toLocaleLowerCase();
-            return producto.precio === null || nombre.startsWith('desodorante ') || nombre.startsWith('mini ');
+            return producto.precio === null;
         }
 
         function obtenerFamiliaNota(nota) {
