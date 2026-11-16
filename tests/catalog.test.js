@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import { pricing, productProfit } from '../pricing.js';
+import { productType } from '../product-types.js';
 import { allProducts, calculatePrice, serviceHeaders, toPublic, validateProduct } from '../functions/_lib/catalog.js';
 import { onRequestGet } from '../functions/api/catalog.js';
 import { onRequest } from '../functions/api/admin/[[path]].js';
@@ -301,24 +302,113 @@ test('initial migration preserves the full catalog, normalized categories and or
     }
 });
 
-test('storefront escapes editable content and renders notes, products and cart safely', async () => {
+async function storefront() {
     const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
     const scripts = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map(match => match[1]);
     scripts.forEach(script => new vm.Script(script));
     const nodes = new Map();
     const node = id => {
-        if (!nodes.has(id)) nodes.set(id, { innerHTML: '', classList: { toggle() {} } });
+        if (!nodes.has(id)) nodes.set(id, {
+            innerHTML: '', value: '', textContent: '', open: false,
+            selectedOptions: [{ textContent: 'Splash' }],
+            classList: { toggle() {} }, scrollIntoView() {}, focus() {},
+            showModal() { this.open = true; }, close() { this.open = false; },
+            querySelector() { return { focus() {} }; }
+        });
         return nodes.get(id);
     };
-    const context = { document: { getElementById: node } };
+    const context = {
+        productType,
+        document: { getElementById: node, querySelectorAll: () => [], body: { style: {} } },
+        matchMedia: () => ({ matches: true })
+    };
     vm.createContext(context);
     const script = scripts.find(text => text.includes('let perfumesDB'));
-    vm.runInContext(script.slice(0, script.indexOf("        document.addEventListener('keydown'")), context);
+    vm.runInContext(script.slice(0, script.indexOf("        document.querySelectorAll('.catalog-dialog')")), context);
+    vm.runInContext('obtenerTipoProducto = productType;', context);
+    return { html, node, context, run: source => vm.runInContext(source, context) };
+}
+
+test('storefront escapes editable content and renders notes, products and cart safely', async () => {
+    const { html, node, context, run } = await storefront();
     const injected = { ...toPublic(product, 10), nombre: '<img src=x onerror=alert(1)>', notas: '<script>bad()</script>', inspiracion: '"<b>unsafe</b>' };
     context.products = [injected];
-    vm.runInContext('perfumesDB = products; renderProducts(perfumesDB); addToCart(507);', context);
+    run('perfumesDB = products; renderProducts(perfumesDB); addToCart(507); verProducto(507);');
     assert.ok(!node('products-grid').innerHTML.includes('<script>bad()'));
     assert.match(node('products-grid').innerHTML, /&lt;img src=x onerror=alert\(1\)&gt;/);
     assert.match(node('cart-body').innerHTML, /&lt;img src=x onerror=alert\(1\)&gt;/);
+    assert.match(node('productDetail').innerHTML, /&lt;script&gt;bad\(\)&lt;\/script&gt;/);
+    assert.doesNotMatch(node('productDetail').innerHTML, /<b>unsafe/);
     assert.doesNotMatch(html, /precioUSD|gananciaBs|const perfumesDB = \[/);
+});
+
+test('storefront combines search, legacy and explicit types, brand, stock and price order', async () => {
+    const { node, context, run } = await storefront();
+    context.products = [
+        { ...toPublic(product, 10), id: 1, nombre: 'Body Splash Uno', categoria: 'perfume', precio: 200, tipoStock: 1 },
+        { ...toPublic(product, 10), id: 2, nombre: 'Uno', categoria: 'splash', precio: 150, tipoStock: 1 },
+        { ...toPublic(product, 10), id: 3, nombre: 'Uno', categoria: 'splash', precio: null, tipoStock: 1 },
+        { ...toPublic(product, 10), id: 4, nombre: 'Uno', categoria: 'splash', precio: 100, tipoStock: 0 },
+        { ...toPublic(product, 10), id: 5, nombre: 'Uno', categoria: 'splash', marca: 'Otra', precio: 90, tipoStock: 1 },
+        { ...toPublic(product, 10), id: 6, nombre: 'Splashing Uno', categoria: 'perfume', precio: 80, tipoStock: 1 },
+        { ...toPublic(product, 10), id: 7, nombre: 'Loci\u00f3n Uno', categoria: 'perfume', precio: 70, tipoStock: 1 }
+    ];
+    run("perfumesDB = products; filtroMarcaActual = 'Armaf'; filtroTipoActual = 'splash'; filtroStockActual = 'stock'; ordenPrecioActual = 'price-desc';");
+    node('searchInput').value = 'uno';
+    run('filterProducts();');
+    assert.equal(node('resultCount').textContent, '3 productos');
+    assert.equal(node('filterCount').textContent, 4);
+    const grid = node('products-grid').innerHTML;
+    assert.ok(grid.indexOf('verProducto(1)') < grid.indexOf('verProducto(2)'));
+    assert.ok(grid.indexOf('verProducto(2)') < grid.indexOf('verProducto(3)'));
+    assert.doesNotMatch(grid, /verProducto\([4567]\)/);
+    run("ordenPrecioActual = 'price-asc'; filterProducts();");
+    assert.ok(node('products-grid').innerHTML.indexOf('verProducto(2)') < node('products-grid').innerHTML.indexOf('verProducto(1)'));
+    run("seleccionarFiltroTipo('locion');");
+    assert.equal(node('resultCount').textContent, '1 producto');
+    assert.match(node('products-grid').innerHTML, /verProducto\(7\)/);
+    run('limpiarFiltros();');
+    assert.equal(node('resultCount').textContent, '7 productos');
+    assert.equal(node('searchInput').value, '');
+    assert.equal(node('active-filters').textContent, '');
+    node('searchInput').value = 'inexistente';
+    run('filterProducts();');
+    assert.equal(node('resultCount').textContent, '0 productos');
+    assert.equal(node('pagination').innerHTML, '');
+});
+
+test('compact pagination keeps 24 products, clamps bounds and resets on changed criteria', async () => {
+    const { node, context, run } = await storefront();
+    context.products = Array.from({ length: 49 }, (_, index) => ({ ...toPublic(product, 10), id: index + 1 }));
+    run('perfumesDB = products; filterProducts();');
+    assert.equal((node('products-grid').innerHTML.match(/class="product-card"/g) || []).length, 24);
+    assert.match(node('pagination').innerHTML, /Página 1 de 3/);
+    assert.equal((node('pagination').innerHTML.match(/<button/g) || []).length, 2);
+    assert.match(node('pagination').innerHTML, /disabled>Anterior/);
+    run('irAPagina(99);');
+    assert.match(node('pagination').innerHTML, /Página 3 de 3/);
+    assert.match(node('pagination').innerHTML, /disabled>Siguiente/);
+    assert.match(node('products-grid').innerHTML, /verProducto\(49\)/);
+    run('irAPagina(-1);');
+    assert.match(node('pagination').innerHTML, /Página 1 de 3/);
+    run("irAPagina(2); seleccionarFiltroMarca('Armaf');");
+    assert.match(node('pagination').innerHTML, /Página 1 de 3/);
+});
+
+test('detail includes all notes, full text and consult action without adding unpriced products', async () => {
+    const { node, context, run } = await storefront();
+    context.products = [{ ...toPublic(product, 10), precio: null, notas: 'Rosa, Vainilla, Oud, Jazmin, Limon.', inspiracion: 'Descripcion completa', nombre: 'Nombre completo' }];
+    run('perfumesDB = products; verProducto(507); addToCart(507);');
+    assert.equal(node('productDialog').open, true);
+    assert.match(node('productDetail').innerHTML, /Nombre completo/);
+    assert.match(node('productDetail').innerHTML, /Descripcion completa/);
+    assert.match(node('productDetail').innerHTML, /Limon/);
+    assert.match(node('productDetail').innerHTML, /Imagen no disponible/);
+    assert.match(node('productDetail').innerHTML, /consultarPrecioProducto\(507\)/);
+    assert.equal(run('cart.length'), 0);
+    run('cerrarDialogo("productDialog");');
+    assert.equal(node('productDialog').open, false);
+    context.products[0].notas = '';
+    run('verProducto(507);');
+    assert.match(node('productDetail').innerHTML, /Notas no disponibles/);
 });

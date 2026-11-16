@@ -419,7 +419,6 @@
             width: 100%;
             height: 100%;
             object-fit: contain;
-            transform: scale(1.12);
             transition: transform 0.5s;
         }
 
@@ -428,10 +427,6 @@
             font-size: 14px;
             padding: 16px;
             text-align: center;
-        }
-
-        .product-card:hover .product-img-container img {
-            transform: scale(1.16);
         }
 
         .badge {
@@ -1123,6 +1118,83 @@
                 font-size: 0.68rem;
             }
         }
+        :focus-visible { outline: 2px solid var(--gold-light); outline-offset: 3px; }
+        button, select, .search-box input { min-height: 44px; }
+        button { touch-action: manipulation; }
+        #catalogo, #products-grid { scroll-margin-top: 110px; }
+        .product-card, .product-info { min-width: 0; }
+        .product-title { overflow-wrap: anywhere; }
+        .product-title {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .product-img-container { width: 100%; border: 0; cursor: pointer; color: inherit; }
+        .details-btn { background: none; border: 0; color: var(--gold-light); text-align: left; cursor: pointer; margin-bottom: 0.5rem; }
+        .filter-controls { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; width: 100%; }
+        .filter-trigger, .filter-heading, .filter-done { display: none; }
+        .filter-clear { border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-card); color: var(--gold-light); padding: 0.6rem 0.9rem; cursor: pointer; }
+        .catalog-summary { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem; }
+        #active-filters { display: block; margin-top: 0.4rem; overflow-wrap: anywhere; }
+        .pagination-status { font-size: 0.85rem; color: var(--text-main); }
+        .catalog-dialog { color: var(--text-main); background: var(--bg-card); border: 1px solid var(--gold); border-radius: 16px; max-height: 90dvh; overflow-y: auto; }
+        .catalog-dialog::backdrop { background: rgba(0,0,0,0.8); }
+        #productDialog { width: min(680px, calc(100% - 24px)); margin: auto; padding: 1.5rem; }
+        .dialog-close { display: block; margin-left: auto; min-width: 44px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-dark); color: var(--gold-light); cursor: pointer; }
+        .close-cart, .cart-item-actions button { min-width: 44px; }
+        .cart-item-info { min-width: 0; overflow-wrap: anywhere; }
+        .cart-item-actions { flex-shrink: 0; }
+        .detail-image { width: 100%; height: 260px; object-fit: contain; margin-bottom: 1rem; }
+        #productDetail h2 { overflow-wrap: anywhere; font-size: 1.4rem; margin: 0.75rem 0; }
+        #productDetail .inspiration-box { white-space: pre-line; overflow-wrap: anywhere; margin-top: 1rem; }
+        #productDetail .product-footer { gap: 1rem; flex-wrap: wrap; }
+        #productDetail .detail-stock { color: var(--gold-light); margin: 0.75rem 0; }
+        .note-chip { overflow-wrap: anywhere; max-width: 100%; }
+        @media (min-width: 621px) {
+            #filterDialog { display: block; position: static; width: 100%; max-width: none; max-height: none; overflow: visible; border: 0; padding: 0; background: transparent; }
+        }
+        @media (max-width: 620px) {
+            .container { padding: 1.25rem 4% 6rem; }
+            .hero { min-height: 210px; padding: 1.5rem 6%; }
+            .hero h1 { font-size: 1.45rem; max-width: 100%; margin-bottom: 0.65rem; }
+            .hero p { font-size: 0.85rem; max-width: 100%; }
+            .filters { margin-bottom: 1rem; }
+            .search-box input { font-size: 16px; }
+            .filter-trigger { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1rem; background: var(--gold); color: var(--bg-dark); border: 0; border-radius: 8px; font-weight: 700; cursor: pointer; }
+            .filters > .exchange-box { margin-left: auto; }
+            #filterDialog { position: fixed; inset: auto 0 0; margin: 0; width: 100%; max-width: none; padding: 1.25rem; border-radius: 16px 16px 0 0; padding-bottom: max(1.25rem, env(safe-area-inset-bottom)); }
+            .filter-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+            .filter-heading h2 { font-size: 1.25rem; }
+            .filter-controls { display: grid; grid-template-columns: minmax(0, 1fr); }
+            .catalog-select-filter { display: block; width: 100%; }
+            .catalog-select-filter select { font-size: 16px; }
+            .stock-filters { flex-wrap: wrap; }
+            .stock-filter-btn { flex: 1; }
+            .filter-done { display: block; width: 100%; margin-top: 1rem; border: 0; border-radius: 8px; padding: 0.75rem; background: var(--gold); font-weight: 700; cursor: pointer; }
+            .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
+            .product-img-container { height: 170px; padding: 8px; padding-top: 32px; }
+            .badge { top: 8px; left: 6px; font-size: 0.62rem; padding: 4px 6px; }
+            .product-validation { top: 12px; right: 6px; }
+            .product-info { padding: 0.75rem; }
+            .product-brand { font-size: 0.65rem; letter-spacing: 0.5px; margin-bottom: 0.4rem; overflow-wrap: anywhere; }
+            .product-title { font-size: 0.9rem; line-height: 1.45; }
+            .details-btn { font-size: 0.75rem; }
+            .product-footer { align-items: stretch; flex-direction: column; gap: 0.6rem; padding-top: 0.65rem; }
+            .product-price { font-size: 1.1rem; }
+            .add-to-cart-btn { width: 100%; padding: 0.5rem; }
+            .pagination { flex-wrap: nowrap; gap: 0.4rem; }
+            .pagination button { padding: 0.5rem; font-size: 0.8rem; }
+            .pagination-status { font-size: 0.75rem; text-align: center; }
+            .cart-btn { min-height: 44px; }
+        }
+        @media (max-width: 359px) {
+            .products-grid { grid-template-columns: minmax(0, 1fr); }
+            .product-img-container { height: 220px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+        }
     </style>
 </head>
 <body>
@@ -1186,12 +1258,27 @@
         <div class="filters">
             <div class="search-box">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="searchInput" placeholder="Busca por perfume o inspiración (Ej: Khamrah, Yara, Sublime...)" oninput="filterProducts()">
+                <input type="search" id="searchInput" aria-label="Buscar perfume, marca o inspiración" placeholder="Perfume, marca o inspiración" oninput="filterProducts()">
             </div>
+            <button type="button" class="filter-trigger" id="filterTrigger" onclick="abrirFiltros()" aria-haspopup="dialog" aria-controls="filterDialog">Filtrar <span id="filterCount">0</span></button>
+            <dialog id="filterDialog" class="catalog-dialog" aria-labelledby="filterTitle" onclick="cerrarDesdeFondo(event)">
+            <div class="filter-heading"><h2 id="filterTitle">Filtros</h2><button class="dialog-close" type="button" onclick="cerrarDialogo('filterDialog')" aria-label="Cerrar filtros">✕</button></div>
+            <div class="filter-controls">
             <div class="catalog-select-filter">
                 <label for="brandFilter">Marca</label>
                 <select id="brandFilter" onchange="seleccionarFiltroMarca(this.value)" aria-label="Filtrar por marca">
                     <option value="all">Todas las marcas</option>
+                </select>
+            </div>
+            <div class="catalog-select-filter">
+                <label for="typeFilter">Tipo</label>
+                <select id="typeFilter" onchange="seleccionarFiltroTipo(this.value)">
+                    <option value="all">Todos los tipos</option>
+                    <option value="perfume">Perfume</option>
+                    <option value="desodorante">Desodorante</option>
+                    <option value="mini">Mini</option>
+                    <option value="splash">Splash</option>
+                    <option value="locion">Loción</option>
                 </select>
             </div>
             <div class="catalog-select-filter">
@@ -1202,26 +1289,36 @@
                     <option value="price-desc">Mayor a menor</option>
                 </select>
             </div>
-            <div class="exchange-box rate-display">
-                <label for="cotizacionDolar">Tipo de cambio</label>
-                <input type="number" id="cotizacionDolar" value="0" step="0.01" readonly aria-readonly="true" tabindex="-1">
-                <span>Bs / USD</span>
-            </div>
             <div class="stock-filters" aria-label="Filtrar disponibilidad">
                 <button class="stock-filter-btn active" data-stock-filter="all" onclick="seleccionarFiltroStock('all')">Todos</button>
                 <button class="stock-filter-btn" data-stock-filter="stock" onclick="seleccionarFiltroStock('stock')">En stock</button>
                 <button class="stock-filter-btn" data-stock-filter="order" onclick="seleccionarFiltroStock('order')">Por pedido</button>
             </div>
+            <button class="filter-clear" type="button" onclick="limpiarFiltros()">Limpiar filtros</button>
+            </div>
+            <button class="filter-done" type="button" onclick="cerrarDialogo('filterDialog')">Ver resultados (<span id="filterResults">0</span>)</button>
+            </dialog>
+            <div class="exchange-box rate-display">
+                <label for="cotizacionDolar">Tipo de cambio</label>
+                <input type="number" id="cotizacionDolar" value="0" step="0.01" readonly aria-readonly="true" tabindex="-1">
+                <span>Bs / USD</span>
+            </div>
         </div>
 
+        <p class="catalog-summary" aria-live="polite"><span id="resultCount"></span><span id="active-filters"></span></p>
         <p id="catalog-status" role="status" aria-live="polite"></p>
         <button id="catalog-retry" type="button" onclick="cargarCatalogo()" hidden>Reintentar carga</button>
         <!-- Products Grid -->
-        <div class="products-grid" id="products-grid">
+        <div class="products-grid" id="products-grid" tabindex="-1" role="region" aria-label="Productos del catálogo">
             <!-- Renderizado dinámico -->
         </div>
         <nav class="pagination" id="pagination" aria-label="Paginación de productos"></nav>
     </div>
+
+    <dialog id="productDialog" class="catalog-dialog" aria-labelledby="detailTitle" onclick="cerrarDesdeFondo(event)">
+        <button type="button" class="dialog-close" onclick="cerrarDialogo('productDialog')" aria-label="Cerrar detalles">✕</button>
+        <div id="productDetail"></div>
+    </dialog>
 
     <!-- Carrito Desplegable -->
     <div class="overlay" id="overlay" onclick="toggleCart()"></div>
@@ -1231,7 +1328,7 @@
     <div class="cart-drawer" id="cartDrawer">
         <div class="cart-header">
             <h3>Tu Lista de Pedido</h3>
-            <button class="close-cart" onclick="toggleCart()"><i class="fa-solid fa-xmark"></i></button>
+            <button class="close-cart" onclick="toggleCart()" aria-label="Cerrar carrito"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
         </div>
         <div class="cart-body" id="cart-body">
             <div class="empty-cart">Tu carrito está vacío</div>
@@ -1250,6 +1347,7 @@
 
     <script>
         let perfumesDB = [];
+        let obtenerTipoProducto;
 
         function escapeHtml(value) {
             return String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -1263,6 +1361,7 @@
             estado.textContent = 'Cargando catalogo...';
             reintentar.hidden = true;
             try {
+                ({ productType: obtenerTipoProducto } = await import('./product-types.js'));
                 const response = await fetch('/api/catalog', { cache: 'no-store' });
                 if (!response.ok) throw new Error('No se pudo cargar el catalogo (' + response.status + ').');
                 const data = await response.json();
@@ -1278,6 +1377,8 @@
                 console.error('Error al cargar catalogo:', error);
                 estado.textContent = 'No se pudo cargar el catalogo. Reintenta o contactanos por WhatsApp.';
                 document.getElementById('products-grid').replaceChildren();
+                document.getElementById('pagination').replaceChildren();
+                document.getElementById('resultCount').textContent = '';
                 reintentar.hidden = false;
             }
         }
@@ -1285,6 +1386,7 @@
         let cart = [];
         let filtroStockActual = 'all';
         let filtroMarcaActual = 'all';
+        let filtroTipoActual = 'all';
         let ordenPrecioActual = 'default';
         let paginaActual = 1;
         const productosPorPagina = 24;
@@ -1317,7 +1419,7 @@
             const grid = document.getElementById('products-grid');
             const pagination = document.getElementById('pagination');
             const totalPaginas = Math.ceil(productsToRender.length / productosPorPagina);
-            paginaActual = totalPaginas === 0 ? 1 : Math.min(paginaActual, totalPaginas);
+            paginaActual = totalPaginas === 0 ? 1 : Math.max(1, Math.min(paginaActual, totalPaginas));
             const inicio = (paginaActual - 1) * productosPorPagina;
             const productosDePagina = productsToRender.slice(inicio, inicio + productosPorPagina);
             grid.innerHTML = '';
@@ -1333,31 +1435,22 @@
                 const estadoTexto = enStock ? 'En stock' : 'Por pedido';
                 const badgeClass = enStock ? 'stock' : 'order';
                 const estadoValidacion = obtenerEstadoValidacion(p);
-                const notas = (p.notas || '').split(',').map(nota => nota.trim().replace(/\.$/, '')).filter(Boolean);
-                const notasDisponibles = notas.filter(nota => !/^notas no disponibles$/i.test(nota));
-                const notasMarkup = notasDisponibles.length
-                    ? `<div class="product-notes"><span class="product-notes-title">Notas</span><div class="note-chips">${notasDisponibles.slice(0, 3).map(nota => `<span class="note-chip note-chip-${obtenerFamiliaNota(nota)}">${escapeHtml(nota)}</span>`).join('')}</div></div>`
-                    : '<p class="product-notes"><strong>Notas:</strong> Notas no disponibles.</p>';
-
                 grid.innerHTML += `
                     <div class="product-card">
-                        <div class="product-img-container">
+                        <button type="button" class="product-img-container" onclick="verProducto(${p.id})" aria-label="Ver detalles de ${escapeHtml(p.nombre)}">
                             <span class="badge ${badgeClass}">${estadoTexto}</span>
                             <span class="product-validation ${estadoValidacion.clase}" title="${estadoValidacion.titulo}" aria-label="${estadoValidacion.titulo}"></span>
                             ${p.imagen === 'Imagen no disponible'
                                 ? '<span class="product-img-placeholder">Imagen no disponible</span>'
                                 : `<img src="${escapeHtml(p.imagen)}" alt="${escapeHtml(p.nombre)}" loading="lazy">`}
-                        </div>
+                        </button>
                         <div class="product-info">
                             ${p.marca ? `<span class="product-brand">${escapeHtml(p.marca)}</span>` : ''}
                             <h3 class="product-title">${escapeHtml(p.nombre)}</h3>
-                            <div class="inspiration-box"><i class="fa-solid fa-wand-magic-sparkles"></i> ${escapeHtml(p.inspiracion)}</div>
-                            ${notasMarkup}
+                            <button class="details-btn" type="button" onclick="verProducto(${p.id})">Ver detalles</button>
 
                             <div class="product-footer">
-                                ${requiereConsultaPrecio(p)
-                                    ? `<button class="add-to-cart-btn" onclick="consultarPrecioProducto(${p.id})" title="Consultar por WhatsApp"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Consultar precio</button>`
-                                    : `<span class="product-price">Bs ${Math.round(p.precio)}</span><button class="add-to-cart-btn" onclick="addToCart(${p.id})">Agregar</button>`}
+                                ${accionesProducto(p)}
                             </div>
                         </div>
                     </div>
@@ -1374,24 +1467,21 @@
                 return;
             }
 
-            let botones = `
+            pagination.innerHTML = `
                 <button onclick="irAPagina(${paginaActual - 1})" ${paginaActual === 1 ? 'disabled' : ''}>Anterior</button>
-            `;
-
-            for (let pagina = 1; pagina <= totalPaginas; pagina++) {
-                botones += `<button class="${pagina === paginaActual ? 'active' : ''}" onclick="irAPagina(${pagina})">${pagina}</button>`;
-            }
-
-            botones += `
+                <span class="pagination-status" aria-current="page">Página ${paginaActual} de ${totalPaginas}</span>
                 <button onclick="irAPagina(${paginaActual + 1})" ${paginaActual === totalPaginas ? 'disabled' : ''}>Siguiente</button>
             `;
-            pagination.innerHTML = botones;
         }
 
         function irAPagina(pagina) {
             paginaActual = pagina;
             filterProducts(false);
-            document.getElementById('products-grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const grid = document.getElementById('products-grid');
+            grid.focus({ preventScroll: true });
+            grid.scrollIntoView({
+                behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start'
+            });
         }
 
         function cargarFiltroMarcas() {
@@ -1415,6 +1505,7 @@
                     (filtroStockActual === 'order' && Number(p.tipoStock) !== 1) ||
                     (filtroStockActual === 'stock' && Number(p.tipoStock) === 1)) &&
                 (filtroMarcaActual === 'all' || (p.marca || '').trim().toLocaleLowerCase() === filtroMarcaActual.toLocaleLowerCase()) &&
+                (filtroTipoActual === 'all' || obtenerTipoProducto(p) === filtroTipoActual) &&
                 (p.nombre.toLowerCase().includes(query) ||
                 (p.marca || '').toLowerCase().includes(query) ||
                 p.inspiracion.toLowerCase().includes(query))
@@ -1435,6 +1526,85 @@
             }
 
             renderProducts(filtered);
+            document.getElementById('resultCount').textContent = `${filtered.length} ${filtered.length === 1 ? 'producto' : 'productos'}`;
+            document.getElementById('filterResults').textContent = filtered.length;
+            const activos = [
+                filtroMarcaActual !== 'all' ? `Marca: ${filtroMarcaActual}` : '',
+                filtroTipoActual !== 'all' ? `Tipo: ${document.getElementById('typeFilter').selectedOptions[0].textContent}` : '',
+                filtroStockActual !== 'all' ? (filtroStockActual === 'stock' ? 'En stock' : 'Por pedido') : '',
+                ordenPrecioActual !== 'default' ? (ordenPrecioActual === 'price-asc' ? 'Precio: menor a mayor' : 'Precio: mayor a menor') : ''
+            ].filter(Boolean);
+            document.getElementById('filterCount').textContent = activos.length;
+            document.getElementById('active-filters').textContent = activos.join(' · ');
+        }
+
+        function seleccionarFiltroTipo(tipo) {
+            filtroTipoActual = tipo;
+            filterProducts();
+        }
+
+        function limpiarFiltros() {
+            filtroMarcaActual = filtroTipoActual = filtroStockActual = 'all';
+            ordenPrecioActual = 'default';
+            document.getElementById('searchInput').value = '';
+            document.getElementById('brandFilter').value = 'all';
+            document.getElementById('typeFilter').value = 'all';
+            document.getElementById('priceSort').value = 'default';
+            seleccionarFiltroStock('all');
+        }
+
+        function accionesProducto(p) {
+            return requiereConsultaPrecio(p)
+                ? `<button class="add-to-cart-btn" onclick="consultarPrecioProducto(${p.id})" title="Consultar por WhatsApp"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Consultar precio</button>`
+                : `<span class="product-price">Bs ${Math.round(p.precio)}</span><button class="add-to-cart-btn" onclick="addToCart(${p.id})">Agregar</button>`;
+        }
+
+        function verProducto(id) {
+            const p = perfumesDB.find(producto => producto.id === id);
+            const notas = (p.notas || '').split(',').map(nota => nota.trim().replace(/\.$/, '')).filter(nota => nota && !/^notas no disponibles$/i.test(nota));
+            document.getElementById('productDetail').innerHTML = `
+                ${p.imagen === 'Imagen no disponible'
+                    ? '<p class="product-img-placeholder">Imagen no disponible</p>'
+                    : `<img class="detail-image" src="${escapeHtml(p.imagen)}" alt="${escapeHtml(p.nombre)}">`}
+                <p class="product-brand">${escapeHtml(p.marca)}</p>
+                <h2 id="detailTitle">${escapeHtml(p.nombre)}</h2>
+                <p class="detail-stock">${Number(p.tipoStock) === 1 ? 'En stock' : 'Por pedido'}</p>
+                <div class="inspiration-box">${escapeHtml(p.inspiracion || 'Descripción no disponible.')}</div>
+                <div class="product-notes"><span class="product-notes-title">Notas</span>
+                    ${notas.length ? `<div class="note-chips">${notas.map(nota => `<span class="note-chip note-chip-${obtenerFamiliaNota(nota)}">${escapeHtml(nota)}</span>`).join('')}</div>` : '<p>Notas no disponibles.</p>'}
+                </div>
+                <div class="product-footer">${accionesProducto(p)}</div>`;
+            abrirDialogo('productDialog');
+        }
+
+        let dialogoActivo = null;
+        let focoAnterior = null;
+        let overflowAnterior = '';
+
+        function abrirDialogo(id) {
+            const dialogo = document.getElementById(id);
+            focoAnterior = document.activeElement;
+            overflowAnterior = document.body.style.overflow;
+            dialogoActivo = dialogo;
+            dialogo.showModal();
+            document.body.style.overflow = 'hidden';
+            dialogo.querySelector('button').focus();
+        }
+
+        function cerrarDialogo(id) {
+            document.getElementById(id).close();
+        }
+
+        function cerrarDesdeFondo(event) {
+            if (event.target !== event.currentTarget) return;
+            const rect = event.currentTarget.getBoundingClientRect();
+            if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
+                event.currentTarget.close();
+            }
+        }
+
+        function abrirFiltros() {
+            abrirDialogo('filterDialog');
         }
 
         function seleccionarFiltroMarca(marca) {
@@ -1479,6 +1649,7 @@
                 });
             }
             updateCartUI();
+            if (dialogoActivo?.id === 'productDialog') cerrarDialogo('productDialog');
             toggleCart();
         }
 
@@ -1603,6 +1774,24 @@
             if (!overlay || (event && event.target !== overlay)) return;
             overlay.remove();
         }
+
+        document.querySelectorAll('.catalog-dialog').forEach(dialogo => {
+            dialogo.addEventListener('close', () => {
+                document.body.style.overflow = overflowAnterior;
+                dialogoActivo = null;
+                if (document.getElementById('cartDrawer').classList.contains('open')) document.querySelector('.close-cart').focus();
+                else if (focoAnterior?.isConnected) focoAnterior.focus({ preventScroll: true });
+            });
+        });
+        const pantallaMovil = matchMedia('(max-width: 620px)');
+        function actualizarRolFiltros() {
+            document.getElementById('filterDialog').setAttribute('role', pantallaMovil.matches ? 'dialog' : 'group');
+        }
+        actualizarRolFiltros();
+        pantallaMovil.addEventListener('change', event => {
+            if (!event.matches && document.getElementById('filterDialog').open) cerrarDialogo('filterDialog');
+            actualizarRolFiltros();
+        });
 
         document.addEventListener('keydown', event => {
             if (event.key === 'Escape') {

@@ -61,6 +61,20 @@ borra ese historial ni convierte un repositorio publico en privado.
 
 ## Uso diario
 
+### Catalogo en celular
+
+- Portada compacta y dos productos por fila desde 360 px; una columna en
+  pantallas mas estrechas. Las fotos se muestran completas, sin ampliacion.
+- Tocar la foto o **Ver detalles** abre la ficha con descripcion y todas las
+  notas. Se cierra con el boton, Escape o el fondo, sin perder filtros ni pagina.
+- El buscador queda visible; **Filtrar** abre marca, tipo, disponibilidad y orden
+  de precio. Los criterios se combinan y se aplican inmediatamente.
+  **Limpiar filtros** tambien borra la busqueda.
+- Splash y lociones antiguos se reconocen por nombre con el mismo helper de
+  tipos que utiliza el calculo de ganancia, sin editar su categoria guardada.
+- La paginacion conserva 24 productos y muestra Anterior, Pagina X de Y y
+  Siguiente. Precios, carrito, WhatsApp y administracion no cambian.
+
 Abrir `/admin`, ingresar, buscar un producto o pulsar **Agregar perfume**.
 
 - Campos: nombre/presentacion (los ml van en el nombre), marca, referencia,
