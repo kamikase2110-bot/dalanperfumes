@@ -10,7 +10,7 @@ create table if not exists public.products (
     notas text not null default '',
     imagen text not null default 'Imagen no disponible',
     "precioUSD" numeric(12, 4) not null check ("precioUSD" >= 0 and "precioUSD" <= 100000),
-    categoria text not null default 'perfume' check (categoria in ('perfume', 'desodorante', 'mini')),
+    categoria text not null default 'perfume' check (categoria in ('perfume', 'desodorante', 'mini', 'splash', 'locion')),
     oculto boolean not null default false,
     version integer not null default 1 check (version > 0)
 );

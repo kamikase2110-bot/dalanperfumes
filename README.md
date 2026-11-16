@@ -85,7 +85,8 @@ Abrir `/admin`, ingresar, buscar un producto o pulsar **Agregar perfume**.
 - Perfume: **100 Bs**.
 - Desodorante o mini: **50 Bs**. Al agregar productos, seleccionar su categoria;
   no es necesario que el nombre comience con "Mini" o "Desodorante".
-- Splash o locion: **50 Bs**, detectados automaticamente por las palabras
+- Splash o locion: **50 Bs** al seleccionar su tipo en el panel, incluso si
+  su nombre no incluye el tipo. Tambien se detectan automaticamente las palabras
   "Splash", "Locion", "Lociones" o "Lotion" en el nombre, sin distinguir
   mayusculas ni tildes. Se aplica a los productos existentes y nuevos, tanto
   en la tienda como en la vista previa del panel, sin cambiar su categoria.
@@ -102,6 +103,14 @@ Los valores de transporte y ganancia se definen en `pricing.js`, compartido por
 las Functions y la vista previa del panel.
 Esta primera version permite administrar los productos, no cambiar reglas de
 ganancia ni el contenido general de la portada.
+
+### Actualizar una base existente para Splash y Locion
+
+Antes de publicar el selector con los nuevos tipos, ejecutar
+`supabase/add-product-types.sql` en el SQL Editor del proyecto existente.
+Solo amplia los valores permitidos de `categoria`; no modifica ni elimina
+productos. Para instalaciones nuevas, `supabase/schema.sql` ya los incluye.
+No volver a importar `supabase/seed.sql`.
 
 ## Datos y respaldos
 

@@ -48,11 +48,11 @@
                             <label>Referencia del proveedor <input name="referencia" maxlength="60"></label>
                         </div>
                         <div class="columns">
-                            <label>Tipo de producto <select name="categoria"><option value="perfume">Perfume (100 Bs de ganancia)</option><option value="desodorante">Desodorante (50 Bs de ganancia)</option><option value="mini">Mini (50 Bs de ganancia)</option></select></label>
+                            <label>Tipo de producto <select name="categoria"><option value="perfume">Perfume (100 Bs de ganancia)</option><option value="desodorante">Desodorante (50 Bs de ganancia)</option><option value="mini">Mini (50 Bs de ganancia)</option><option value="splash">Splash (50 Bs de ganancia)</option><option value="locion">Locion (50 Bs de ganancia)</option></select></label>
                             <label>Costo del proveedor (USD; 0 = consultar precio) <input name="precioUSD" type="number" step="0.0001" min="0" max="100000" required></label>
                         </div>
                         <output id="price-preview" aria-live="polite"></output>
-                        <small>Splash y lociones (Lotion): 50 Bs de ganancia automaticamente por su nombre.</small>
+                        <small>Splash y lociones: 50 Bs de ganancia al seleccionar su tipo. Los nombres con Splash, Locion o Lotion tambien se reconocen automaticamente.</small>
                         <label>Disponibilidad <select name="tipoStock"><option value="0">Por pedido</option><option value="1">En stock</option></select></label>
                         <label>Inspiracion / descripcion <textarea name="inspiracion" maxlength="500" rows="2" placeholder="Ej.: Se parece a..."></textarea></label>
                         <label>Notas aromaticas <textarea name="notas" maxlength="2000" rows="3" placeholder="Bergamota, jazmin, vainilla"></textarea></label>

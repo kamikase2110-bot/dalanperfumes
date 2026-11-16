@@ -129,7 +129,7 @@ export function validateProduct(input) {
         throw new HttpError(400, 'El costo USD debe estar entre 0 y 100000. Usa 0 solo para mostrar "Consultar precio".');
     }
     if (![0, 1].includes(input.tipoStock)) throw new HttpError(400, 'Disponibilidad no valida.');
-    if (!['perfume', 'desodorante', 'mini'].includes(input.categoria)) throw new HttpError(400, 'Categoria no valida.');
+    if (!['perfume', 'desodorante', 'mini', 'splash', 'locion'].includes(input.categoria)) throw new HttpError(400, 'Categoria no valida.');
     if (typeof input.oculto !== 'boolean') throw new HttpError(400, 'Visibilidad no valida.');
     if (!result.imagen) result.imagen = 'Imagen no disponible';
     if (result.imagen !== 'Imagen no disponible') {

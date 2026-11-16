@@ -103,6 +103,12 @@ test('admin price preview follows the name rule when switching between lotion an
     fields.nombre.value = 'Body Splash Pure Seduction 250ml';
     vm.runInContext('previewPrice();', context);
     assert.match(output.textContent, /Precio en tienda: Bs 140 .* \+ 50 Bs/);
+    for (const categoria of ['splash', 'locion']) {
+        fields.nombre.value = 'Pure Seduction 250ml';
+        fields.categoria.value = categoria;
+        vm.runInContext('previewPrice();', context);
+        assert.match(output.textContent, /Precio en tienda: Bs 140 .* \+ 50 Bs/);
+    }
 });
 
 test('catalog pagination reads beyond the first database page', async () => {
@@ -196,6 +202,24 @@ test('new product is persisted with database-assigned ID and can be hidden', asy
     const response = await onRequest(context('products', 'POST', { ...product, oculto: true }));
     assert.equal(response.status, 201);
     assert.equal((await response.json()).product.id, 670);
+});
+
+test('admin can save splash and lotion types with 50 Bs profit without relying on the name', async () => {
+    for (const categoria of ['splash', 'locion']) {
+        const item = { ...product, nombre: 'Pure Seduction 250ml', categoria };
+        assert.equal(validateProduct(item).categoria, categoria);
+        assert.equal(calculatePrice(item, 10), 140);
+        globalThis.fetch = async (url, options) => {
+            if (url.endsWith('/auth/v1/user')) return Response.json(confirmedAdmin);
+            assert.equal(options.method, 'PATCH');
+            const body = JSON.parse(options.body);
+            assert.equal(body.categoria, categoria);
+            return Response.json([{ ...body, id: item.id }]);
+        };
+        const response = await onRequest(context('products', 'PUT', item));
+        assert.equal(response.status, 200);
+        assert.equal((await response.json()).product.categoria, categoria);
+    }
 });
 
 test('login stores tokens only in secure HttpOnly cookies and enforces admin allowlist', async () => {
