@@ -1251,6 +1251,7 @@
         // Puedes cambiar estos valores cuando lo necesites
         const costoTransporteUSD = 5;
         const gananciaBs = 100;
+        const gananciaDesodorantesMinisBs = 70;
         let cotizacionDolar = 0;
 
         function actualizarCotizacionDolar() {
@@ -1296,7 +1297,12 @@
             return cotizacionDolar;
         }
 
-        function calcularPrecioBolivianos(precioUSD) {
+        function esDesodoranteOMini(producto) {
+            const nombre = (producto?.nombre || '').trim().toLocaleLowerCase('es');
+            return nombre.startsWith('desodorante ') || nombre.startsWith('mini ');
+        }
+
+        function calcularPrecioBolivianos(precioUSD, ganancia = gananciaBs) {
             const precioUsd = Number(precioUSD) || 0;
             const tipoCambio = Number(cotizacionDolar) || 0;
 
@@ -1304,13 +1310,14 @@
                 return null;
             }
 
-            return ((precioUsd + costoTransporteUSD) * tipoCambio) + gananciaBs;
+            return ((precioUsd + costoTransporteUSD) * tipoCambio) + ganancia;
         }
 
         function recalcularPrecios() {
             actualizarCotizacionDolar();
             perfumesDB.forEach(producto => {
-                producto.precio = calcularPrecioBolivianos(producto.precioUSD);
+                const ganancia = esDesodoranteOMini(producto) ? gananciaDesodorantesMinisBs : gananciaBs;
+                producto.precio = calcularPrecioBolivianos(producto.precioUSD, ganancia);
             });
         }
 
