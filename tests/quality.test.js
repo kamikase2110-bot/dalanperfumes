@@ -1,5 +1,7 @@
 import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { runInNewContext } from 'node:vm';
 import { validateProduct, toPublic } from '../functions/_lib/catalog.js';
 import { validateReview } from '../functions/_lib/quality.js';
 import { onRequest as reviews } from '../functions/api/reviews.js';
@@ -168,4 +170,31 @@ test('public business information requests only public text blocks', async () =>
     };
     const response = await storeInfo({ env });
     assert.deepEqual(await response.json(), { entregas: 'Santa Cruz', pagos: 'QR', pedidos: '30 %', aviso: 'Bienvenida' });
+});
+
+test('purchase conditions still load after the welcome notice is closed', async () => {
+    const info = { entregas: 'Santa Cruz', pagos: 'QR', pedidos: 'Condiciones del encargo', aviso: 'Bienvenida' };
+    const sections = [];
+    const policy = { textContent: '' };
+    const target = {
+        textContent: '',
+        firstElementChild: { append: section => sections.push(section) },
+        set innerHTML(value) { this.textContent = ''; sections.length = 0; }
+    };
+    const context = {
+        fetch: async () => ({ ok: true, json: async () => info }),
+        document: {
+            getElementById: id => ({
+                storeInfo: target, promoDescription: null,
+                productDialog: { addEventListener() {} }
+            })[id],
+            querySelectorAll: () => [policy],
+            createElement: () => ({ textContent: '', append(...children) { this.children = children; } })
+        }
+    };
+    runInNewContext(await readFile(new URL('../storefront-quality.js', import.meta.url), 'utf8'), context);
+    await context.dalanQuality.loadInfo();
+    assert.equal(policy.textContent, info.pedidos);
+    assert.equal(target.textContent, '');
+    assert.deepEqual(sections.map(section => section.children[1].textContent), [info.entregas, info.pagos, info.pedidos]);
 });

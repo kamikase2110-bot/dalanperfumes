@@ -22,7 +22,8 @@
         try {
             const data = await api('/api/store-info');
             orderConditions = data.pedidos;
-            document.getElementById('promoDescription').textContent = data.aviso;
+            const welcomeDescription = document.getElementById('promoDescription');
+            if (welcomeDescription) welcomeDescription.textContent = data.aviso;
             showConditions();
             target.innerHTML = '<div class="info-grid"></div>';
             const grid = target.firstElementChild;
