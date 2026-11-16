@@ -1,8 +1,9 @@
 import { productProfit } from './pricing.js';
-import { availability, productImages } from './product-info.js';
+import { availability, productImages, features } from './product-info.js';
 
 const $ = id => document.getElementById(id);
 const form = $('product-form');
+$('reviews-section').hidden = !features.reviews;
 let products = [];
 let selected = null;
 let rate = null;
@@ -345,6 +346,7 @@ $('info-form').addEventListener('submit', async event => {
 });
 
 async function loadReviews() {
+    if (!features.reviews) return;
     if (reviewLoading) return;
     reviewLoading = true;
     $('review-state').disabled = true;

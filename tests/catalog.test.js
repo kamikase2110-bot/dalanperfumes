@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import { pricing, productProfit } from '../pricing.js';
 import { productType } from '../product-types.js';
-import { availability, productImages } from '../product-info.js';
+import { availability, productImages, features } from '../product-info.js';
 import { allProducts, calculatePrice, serviceHeaders, toPublic, validateProduct } from '../functions/_lib/catalog.js';
 import { onRequestGet } from '../functions/api/catalog.js';
 import { onRequest } from '../functions/api/admin/[[path]].js';
@@ -91,10 +91,10 @@ test('admin price preview follows the name rule when switching between lotion an
         precioUSD: { value: '4' }
     };
     const output = {};
-    const nodes = { 'product-form': { elements: fields }, 'price-preview': output };
+    const nodes = { 'product-form': { elements: fields }, 'price-preview': output, 'reviews-section': {} };
     const context = vm.createContext({
         document: { getElementById: id => nodes[id] },
-        productProfit, rules: pricing
+        productProfit, rules: pricing, features
     });
     vm.runInContext(source.slice(source.indexOf('const $'), source.indexOf('function edit(')), context);
     vm.runInContext('rate = 10; pricing = rules; previewPrice();', context);
@@ -497,6 +497,18 @@ test('product gallery and presentation render escaped complete information', asy
     assert.match(node('productDetail').innerHTML, /100 ml &lt;script&gt;/);
     assert.match(node('productDetail').innerHTML, /mostrarFotoProducto\(507,1\)/);
     assert.match(node('productDetail').innerHTML, /informacionCompra/);
+});
+
+test('paused product reviews stay absent and make no requests, while reactivation restores them', async () => {
+    const { run, node, context } = await storefront();
+    let loaded = 0;
+    context.dalanQuality = { showConditions() {}, loadReviews() { loaded++; } };
+    run(`perfumesDB=[${JSON.stringify({ ...product, precio: 100 })}]; verProducto(507);`);
+    assert.doesNotMatch(node('productDetail').innerHTML, /productReviews/);
+    assert.equal(loaded, 0);
+    run('storeFeatures.reviews=true; verProducto(507);');
+    assert.match(node('productDetail').innerHTML, /id="productReviews"/);
+    assert.equal(loaded, 1);
 });
 
 test('checkout rechecks availability, refuses sold-out items and requires acknowledgment of updated prices', async () => {

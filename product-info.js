@@ -1,3 +1,5 @@
+export const features = { reviews: false };
+
 export function availability(product) {
     return [
         { label: 'Por pedido', filter: 'order', className: 'order', purchasable: true },

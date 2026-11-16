@@ -1,9 +1,11 @@
 import { database, errorResponse, HttpError, json } from '../_lib/catalog.js';
 import { checkOrigin } from '../_lib/auth.js';
 import { positiveId, readJson, validateReview, verifyReviewRequest, visibleProduct } from '../_lib/quality.js';
+import { features } from '../../product-info.js';
 
 export async function onRequest({ request, env }) {
     try {
+        if (!features.reviews) throw new HttpError(503, 'Las resenas estan pausadas temporalmente.');
         if (request.method === 'GET') {
             const url = new URL(request.url);
             const id = positiveId(Number(url.searchParams.get('productId')));

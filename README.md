@@ -133,12 +133,17 @@ ganancia ni el contenido general de la portada.
 
 ### Entregas y resenas
 
+- Las resenas estan pausadas temporalmente con `features.reviews = false` en
+  `product-info.js`: se ocultan en tienda y panel, y las APIs rechazan lectura,
+  envio y moderacion con 503. Se conservan las tablas, opiniones y claves de
+  Turnstile. Para reactivarlas, cambiar el indicador a `true`, validar y publicar
+  en ambos proyectos Pages; no repetir la migracion ni crear nuevas claves.
 - En el panel, **Entregas, pagos y condiciones** publica los textos de compra.
   La tienda los muestra al final del catalogo, accesibles desde ficha y carrito.
   El aviso breve de bienvenida tambien se edita aqui. Actualizarlo junto con las
   condiciones si cambia el plazo. Ficha y carrito muestran las mismas condiciones
   guardadas, sin mantener copias distintas en el codigo.
-- **Resenas de productos** permite revisar pendientes, aprobar, rechazar u ocultar.
+- Cuando estan activas, **Resenas de productos** permite revisar pendientes, aprobar, rechazar u ocultar.
   No se modifica la opinion del cliente. Solo las aprobadas forman el listado,
   promedio y cantidad publicos; nunca se etiquetan como compra verificada.
 - Los clientes autorizan publicar su alias, puntuacion y comentario. No pedir

@@ -1,4 +1,4 @@
-import test, { afterEach } from 'node:test';
+import test, { afterEach, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
@@ -7,9 +7,12 @@ import { validateReview } from '../functions/_lib/quality.js';
 import { onRequest as reviews } from '../functions/api/reviews.js';
 import { onRequestGet as storeInfo } from '../functions/api/store-info.js';
 import { onRequest as admin } from '../functions/api/admin/[[path]].js';
+import { features } from '../product-info.js';
 
 const originalFetch = globalThis.fetch;
-afterEach(() => { globalThis.fetch = originalFetch; });
+const originalReviews = features.reviews;
+beforeEach(() => { features.reviews = true; });
+afterEach(() => { globalThis.fetch = originalFetch; features.reviews = originalReviews; });
 const env = {
     SUPABASE_URL: 'https://example.supabase.co', SUPABASE_SECRET_KEY: 'sb_secret_test',
     SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test', ADMIN_EMAILS: 'admin@example.test',
@@ -70,6 +73,27 @@ test('review requires consent and valid bounded content', () => {
         { comentario: 'x'.repeat(1001) }, { puntuacion: 0 }, { puntuacion: 6 },
         { puntuacion: '5' }, { consentimiento: false }
     ]) assert.throws(() => validateReview({ ...input, ...patch }), { status: 400 });
+});
+
+test('paused reviews reject public reads and submissions without contacting services', async () => {
+    features.reviews = false;
+    globalThis.fetch = () => assert.fail('Paused reviews must not contact services');
+    for (const method of ['GET', 'POST']) {
+        const response = await reviews({ env, request: request(method, method === 'POST' ? input : undefined) });
+        assert.equal(response.status, 503);
+        assert.match((await response.json()).error, /pausadas/);
+    }
+});
+
+test('paused review moderation authenticates but never reads or changes review data', async () => {
+    features.reviews = false;
+    const calls = backend();
+    for (const method of ['GET', 'PUT']) {
+        const response = await admin(adminContext('reviews', method, method === 'PUT' ? { id: 1, version: 1, estado: 'aprobada' } : undefined));
+        assert.equal(response.status, 503);
+        assert.match((await response.json()).error, /pausadas/);
+    }
+    assert.ok(calls.every(call => call.address.includes('/auth/v1/user')));
 });
 
 test('review submission saves only validated pending data after hostname, action and persistent limit verification', async () => {

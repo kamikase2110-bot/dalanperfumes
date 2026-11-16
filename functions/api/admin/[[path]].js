@@ -1,6 +1,7 @@
 import { allProducts, config, database, errorResponse, getRate, HttpError, json, pricing, productFields, readBody, serviceHeaders, validateProduct } from '../../_lib/catalog.js';
 import { authRequest, checkOrigin, clearSession, cookies, requireAdmin, setSession } from '../../_lib/auth.js';
 import { positiveId, readJson, validateInfo } from '../../_lib/quality.js';
+import { features } from '../../../product-info.js';
 
 async function uploadImage(request, env) {
     const type = request.headers.get('Content-Type');
@@ -83,6 +84,7 @@ export async function onRequest({ request, env, params }) {
             if (!rows.length) throw new HttpError(409, 'Las condiciones cambiaron. Recarga antes de guardar.');
             return json(rows[0]);
         }
+        if (path === 'reviews' && !features.reviews) throw new HttpError(503, 'Las resenas estan pausadas temporalmente.');
         if (path === 'reviews' && method === 'GET') {
             const url = new URL(request.url);
             const state = url.searchParams.get('state') || 'pendiente';

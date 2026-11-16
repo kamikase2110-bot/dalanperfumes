@@ -1379,6 +1379,7 @@
         let obtenerTipoProducto;
         let obtenerDisponibilidad;
         let imagenesProducto;
+        let storeFeatures = { reviews: false };
 
         function escapeHtml(value) {
             return String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -1393,7 +1394,7 @@
             reintentar.hidden = true;
             try {
                 ({ productType: obtenerTipoProducto } = await import('./product-types.js'));
-                ({ availability: obtenerDisponibilidad, productImages: imagenesProducto } = await import('./product-info.js'));
+                ({ availability: obtenerDisponibilidad, productImages: imagenesProducto, features: storeFeatures } = await import('./product-info.js'));
                 const response = await fetch('/api/catalog', { cache: 'no-store' });
                 if (!response.ok) throw new Error('No se pudo cargar el catalogo (' + response.status + ').');
                 const data = await response.json();
@@ -1611,10 +1612,10 @@
                     ${notas.length ? `<div class="note-chips">${notas.map(nota => `<span class="note-chip note-chip-${obtenerFamiliaNota(nota)}">${escapeHtml(nota)}</span>`).join('')}</div>` : '<p>Notas no disponibles.</p>'}
                 </div>
                 <div class="product-footer">${accionesProducto(p)}</div>
-                <section id="productReviews" class="product-reviews" aria-label="Reseñas del producto"></section>`;
+                ${storeFeatures.reviews ? '<section id="productReviews" class="product-reviews" aria-label="Reseñas del producto"></section>' : ''}`;
             abrirDialogo('productDialog');
             globalThis.dalanQuality?.showConditions();
-            globalThis.dalanQuality?.loadReviews(p.id);
+            if (storeFeatures.reviews) globalThis.dalanQuality?.loadReviews(p.id);
         }
 
         function mostrarFotoProducto(id, index) {
