@@ -1,3 +1,5 @@
+import { productProfit } from './pricing.js';
+
 const $ = id => document.getElementById(id);
 const form = $('product-form');
 let products = [];
@@ -103,7 +105,10 @@ function updatePhoto() {
 function previewPrice() {
     if (!pricing) return;
     const cost = Number(form.elements.precioUSD.value);
-    const profit = form.elements.categoria.value === 'perfume' ? pricing.gananciaBs : pricing.gananciaDesodorantesMinisBs;
+    const profit = productProfit({
+        nombre: form.elements.nombre.value,
+        categoria: form.elements.categoria.value
+    }, pricing);
     if (!rate) {
         $('price-preview').textContent = 'Sin cotizacion disponible: el precio final se mostrara para consultar.';
     } else if (cost > 0) {
@@ -135,7 +140,7 @@ async function loadProducts(keepEditor = false) {
     products = data.products;
     rate = data.rate;
     pricing = data.pricing;
-    $('pricing').textContent = `Transporte: USD ${pricing.transporteUSD} · Ganancia perfumes: ${pricing.gananciaBs} Bs · Minis/desodorantes: ${pricing.gananciaDesodorantesMinisBs} Bs`;
+    $('pricing').textContent = `Transporte: USD ${pricing.transporteUSD} · Ganancia perfumes: ${pricing.gananciaBs} Bs · Minis/desodorantes/splash/lociones: ${pricing.gananciaDesodorantesMinisBs} Bs`;
     $('brands').replaceChildren();
     for (const brand of [...new Set(products.map(product => product.marca).filter(Boolean))].sort()) {
         const option = document.createElement('option');

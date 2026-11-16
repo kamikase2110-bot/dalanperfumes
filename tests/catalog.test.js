@@ -2,6 +2,7 @@ import test, { afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
+import { pricing, productProfit } from '../pricing.js';
 import { allProducts, calculatePrice, serviceHeaders, toPublic, validateProduct } from '../functions/_lib/catalog.js';
 import { onRequestGet } from '../functions/api/catalog.js';
 import { onRequest } from '../functions/api/admin/[[path]].js';
@@ -61,6 +62,47 @@ test('product validation rejects invalid costs, fields, visibility and unsafe im
     assert.equal(result.imagen, 'Imagen no disponible');
     assert.equal(Object.hasOwn(result, 'unknown'), false);
     assert.equal(Object.hasOwn(result, 'id'), false);
+});
+
+test('splash and lotions use 50 Bs profit by name without changing other perfumes', () => {
+    for (const nombre of [
+        'SPLASH LAYAAN EDP 250ML', 'Body Splash Pure Seduction 250ml',
+        'LOTION AMBER ROMANCE 250ML', 'Body lotion 250ml',
+        'Locion corporal 250ml', 'Loci\u00f3n corporal 250ml', 'Lociones corporales'
+    ]) {
+        const item = { ...product, nombre, categoria: 'perfume' };
+        assert.equal(calculatePrice(item, 10), 140, nombre);
+        assert.equal(toPublic(item, 10).precio, 140, nombre);
+        assert.equal(calculatePrice({ ...item, precioUSD: 0 }, 10), null);
+        assert.equal(calculatePrice(item, null), null);
+    }
+    for (const nombre of ['Victoria EDP 100ml', 'Harlequin Cream EDP 75ml', 'Splashing EDP 100ml']) {
+        assert.equal(calculatePrice({ ...product, nombre, categoria: 'perfume', notas: 'Body Splash' }, 10), 190, nombre);
+    }
+});
+
+test('admin price preview follows the name rule when switching between lotion and perfume', async () => {
+    const source = await readFile(new URL('../admin.js', import.meta.url), 'utf8');
+    const fields = {
+        nombre: { value: 'Lotion Bare Vainilla 250ml' },
+        categoria: { value: 'perfume' },
+        precioUSD: { value: '4' }
+    };
+    const output = {};
+    const nodes = { 'product-form': { elements: fields }, 'price-preview': output };
+    const context = vm.createContext({
+        document: { getElementById: id => nodes[id] },
+        productProfit, rules: pricing
+    });
+    vm.runInContext(source.slice(source.indexOf('const $'), source.indexOf('function edit(')), context);
+    vm.runInContext('rate = 10; pricing = rules; previewPrice();', context);
+    assert.match(output.textContent, /Precio en tienda: Bs 140 .* \+ 50 Bs/);
+    fields.nombre.value = 'Victoria EDP 100ml';
+    vm.runInContext('previewPrice();', context);
+    assert.match(output.textContent, /Precio en tienda: Bs 190 .* \+ 100 Bs/);
+    fields.nombre.value = 'Body Splash Pure Seduction 250ml';
+    vm.runInContext('previewPrice();', context);
+    assert.match(output.textContent, /Precio en tienda: Bs 140 .* \+ 50 Bs/);
 });
 
 test('catalog pagination reads beyond the first database page', async () => {

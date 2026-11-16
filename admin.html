@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex,nofollow">
     <title>Administrar | DALAN</title>
     <link rel="stylesheet" href="/admin.css">
-    <script src="/admin.js" defer></script>
+    <script src="/admin.js" type="module"></script>
 </head>
 <body>
     <header>
@@ -52,6 +52,7 @@
                             <label>Costo del proveedor (USD; 0 = consultar precio) <input name="precioUSD" type="number" step="0.0001" min="0" max="100000" required></label>
                         </div>
                         <output id="price-preview" aria-live="polite"></output>
+                        <small>Splash y lociones (Lotion): 50 Bs de ganancia automaticamente por su nombre.</small>
                         <label>Disponibilidad <select name="tipoStock"><option value="0">Por pedido</option><option value="1">En stock</option></select></label>
                         <label>Inspiracion / descripcion <textarea name="inspiracion" maxlength="500" rows="2" placeholder="Ej.: Se parece a..."></textarea></label>
                         <label>Notas aromaticas <textarea name="notas" maxlength="2000" rows="3" placeholder="Bergamota, jazmin, vainilla"></textarea></label>

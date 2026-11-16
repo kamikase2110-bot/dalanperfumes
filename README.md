@@ -85,6 +85,10 @@ Abrir `/admin`, ingresar, buscar un producto o pulsar **Agregar perfume**.
 - Perfume: **100 Bs**.
 - Desodorante o mini: **50 Bs**. Al agregar productos, seleccionar su categoria;
   no es necesario que el nombre comience con "Mini" o "Desodorante".
+- Splash o locion: **50 Bs**, detectados automaticamente por las palabras
+  "Splash", "Locion", "Lociones" o "Lotion" en el nombre, sin distinguir
+  mayusculas ni tildes. Se aplica a los productos existentes y nuevos, tanto
+  en la tienda como en la vista previa del panel, sin cambiar su categoria.
 - Costo **0**: muestra **Consultar precio**, como los cuatro productos existentes
   sin costo. No se inventan precios durante la migracion.
 - Sin cotizacion disponible: se informa el problema y se muestra **Consultar
@@ -94,7 +98,8 @@ Abrir `/admin`, ingresar, buscar un producto o pulsar **Agregar perfume**.
 - La tienda y la vista previa del panel redondean al boliviano mas cercano,
   conservando el comportamiento anterior. La tasa puede cambiar entre visitas.
 
-Los valores de transporte y ganancia se definen en `functions/_lib/catalog.js`.
+Los valores de transporte y ganancia se definen en `pricing.js`, compartido por
+las Functions y la vista previa del panel.
 Esta primera version permite administrar los productos, no cambiar reglas de
 ganancia ni el contenido general de la portada.
 

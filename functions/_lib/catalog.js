@@ -1,4 +1,6 @@
-export const pricing = Object.freeze({ transporteUSD: 5, gananciaBs: 100, gananciaDesodorantesMinisBs: 50 });
+import { pricing, productProfit } from '../../pricing.js';
+
+export { pricing };
 export const productFields = 'id,referencia,nombre,marca,tipoStock,inspiracion,notas,imagen,precioUSD,categoria,oculto,version';
 export const publicFields = 'id,referencia,nombre,marca,tipoStock,inspiracion,notas,imagen,categoria';
 
@@ -91,9 +93,8 @@ export async function allProducts(env, admin = false) {
 
 export function calculatePrice(product, rate) {
     if (!Number.isFinite(rate) || rate <= 0 || Number(product.precioUSD) <= 0) return null;
-    const small = ['mini', 'desodorante'].includes(product.categoria);
     return (Number(product.precioUSD) + pricing.transporteUSD) * rate +
-        (small ? pricing.gananciaDesodorantesMinisBs : pricing.gananciaBs);
+        productProfit(product);
 }
 
 export function toPublic(product, rate) {
