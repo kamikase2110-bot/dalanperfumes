@@ -1,0 +1,13 @@
+{
+  "name": "dalan-perfumeria",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test",
+    "dev": "npm run build && wrangler pages dev dist"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
